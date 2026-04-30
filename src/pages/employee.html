@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee - EMS</title>
+    <link rel="stylesheet" href="../css/sidebar.css">
+    <link rel="stylesheet" href="../css/employee.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="../imgs/rectologo.png" alt="EMS Logo" class="sidebar-logo">
+                <h2>EMS</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html" class="nav-link"><i class="fas fa-dashboard"></i> Dashboard</a></li>
+                    <li><a href="employee.html" class="nav-link"><i class="fas fa-users"></i> Employee</a></li>
+                    <li><a href="report.html" class="nav-link"><i class="fas fa-chart-line"></i> Analytics</a></li>
+                </ul>
+            </nav>
+            <button class="sidebar-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content">
+                <div class="page-heading">
+                    <div>
+                        <span class="page-kicker">Employee Records</span>
+                        <h1>Employee Management</h1>
+     </div>
+                    <span class="page-status"><i class="fas fa-users"></i> Personnel directory</span>
+                </div>
+                <div class="content-actions">
+                    <a href="export.html" class="action-btn export-btn"><i class="fas fa-file-excel"></i> Export</a>
+                    <button class="action-btn add-btn"><i class="fas fa-plus"></i> Add Employee</button>
+                </div>
+                <div class="table-toolbar">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input
+                            type="text"
+                            id="employeeSearch"
+                            placeholder="Search by employee no., name, gender, position, step, salary grade, or contact number"
+                        >
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="employee-table">
+                        <thead>
+                            <tr>
+                                <th>Employee No.</th>
+                                <th>Name</th>
+                                <th>Gender</th>
+                                <th>Position</th>
+                                <th>Step</th>
+                                <th>Salary Grade</th>
+                                <th>Contact Number</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody">
+                            <!-- Employee records will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="addEmployeeOverlay"></div>
+
+    <!-- Add Employee Modal -->
+    <div class="modal" id="addEmployeeModal">
+        <div class="modal-content">
+            <form class="employee-form" id="employeeForm">
+                <div class="modal-header">
+                    <h2 id="employeeModalTitle">Add Employee</h2>
+                    <p>Fill in the employee information below.</p>
+                </div>
+                <div class="form-grid">
+                    <!-- Personal Information -->
+                    <div class="form-section">
+                        <h3>Personal Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" placeholder="e.g., Santos" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" placeholder="e.g., Maria" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="middleName">Middle Name</label>
+                                <input type="text" id="middleName" name="middleName" placeholder="e.g., Reyes">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="gender">Gender *</label>
+                                <select id="gender" name="gender" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="birthdate">Birthdate *</label>
+                                <input type="date" id="birthdate" name="birthdate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="civilStatus">Civil Status *</label>
+                                <select id="civilStatus" name="civilStatus" required>
+                                    <option value="">Select Civil Status</option>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Widowed">Widowed</option>
+                                    
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="contactNo">Contact No. *</label>
+                                <input type="tel" id="contactNo" name="contactNo" placeholder="e.g., 0917 123 4567" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Government IDs -->
+                    <div class="form-section">
+                        <h3>Government IDs & Numbers</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bpNo">BP No.</label>
+                                <input type="text" id="bpNo" name="bpNo" placeholder="Enter BP reference number">
+                            </div>
+                            <div class="form-group">
+                                <label for="philhealthNo">PhilHealth No.</label>
+                                <input type="text" id="philhealthNo" name="philhealthNo" placeholder="Enter PhilHealth number">
+                            </div>
+                            <div class="form-group">
+                                <label for="pagibigNo">Pag-IBIG No.</label>
+                                <input type="text" id="pagibigNo" name="pagibigNo" placeholder="Enter Pag-IBIG number">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bankAccountNo">Bank Account No.</label>
+                                <input type="text" id="bankAccountNo" name="bankAccountNo" placeholder="Enter bank account number">
+                            </div>
+                            <div class="form-group">
+                                <label for="itemNo">Item No.</label>
+                                <input type="text" id="itemNo" name="itemNo" placeholder="Enter plantilla item number">
+                            </div>
+                            <div class="form-group">
+                                <label for="tin">TIN</label>
+                                <input type="text" id="tin" name="tin" placeholder="Enter TIN">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employment Details -->
+                    <div class="form-section">
+                        <h3>Employment Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="employeeNo">Employee No. *</label>
+                                <input type="text" id="employeeNo" name="employeeNo" placeholder="e.g., EMS-2026-001" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="position">Position *</label>
+                                <input type="text" id="position" name="position" placeholder="e.g., Administrative Officer" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="salaryGrade">Salary Grade *</label>
+                                <input type="text" id="salaryGrade" name="salaryGrade" placeholder="e.g., SG-11" required>
+                            </div> 
+                            <div class="form-group">
+                                <label for="step">Step *</label>
+                                <select id="step" name="step" required>
+                                    <option value="">Select Step</option>
+                                    <option value="1">Step 1</option>
+                                    <option value="2">Step 2</option>
+                                    <option value="3">Step 3</option>
+                                    <option value="4">Step 4</option>
+                                    <option value="5">Step 5</option>
+                                    <option value="6">Step 6</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="originalAppointmentDate">Date of Original Appointment *</label>
+                                <input type="date" id="originalAppointmentDate" name="originalAppointmentDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastPromotionDate">Date of Last Promotion</label>
+                                <input type="date" id="lastPromotionDate" name="lastPromotionDate">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit" id="submitEmployeeBtn"><i class="fas fa-save"></i> Save Employee</button>
+                    <button type="button" class="btn-cancel" id="cancelModalBtn"><i class="fas fa-times"></i> Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal-overlay" id="feedbackOverlay"></div>
+    <div class="modal feedback-modal" id="feedbackModal" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="feedbackTitle">Message</h2>
+                <p id="feedbackMessage">Notification details go here.</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="feedbackCancelBtn">Cancel</button>
+                <button type="button" class="btn-submit" id="feedbackConfirmBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/employee.js"></script>
+</body>
+</html>
