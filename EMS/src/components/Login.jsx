@@ -1,26 +1,36 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
-    if (!username || !password) {
-      alert('Please enter both username and password');
+    if (!email || !password) {
+      alert('Please enter both email and password');
       return;
     }
     
-    // Check credentials
-    if (username === 'admin' && password === '123') {
-      navigate('/dashboard');
+    setIsLoading(true);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      alert(error.message);
     } else {
-      alert('Invalid username or password');
+      navigate('/dashboard');
     }
   };
 
@@ -37,19 +47,19 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="flex flex-col">
-            <label htmlFor="username" className="text-text-muted font-semibold mb-2 text-[13px] uppercase tracking-wider">Username</label>
+            <label htmlFor="email" className="text-text-muted font-semibold mb-2 text-[13px] uppercase tracking-wider">Email</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <i className="fas fa-user text-text-placeholder"></i>
+                <i className="fas fa-envelope text-text-placeholder"></i>
               </div>
               <input 
-                type="text" 
-                id="username" 
-                name="username" 
-                placeholder="Enter your username" 
+                type="email" 
+                id="email" 
+                name="email" 
+                placeholder="Enter your admin email" 
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full py-3.5 pl-11 pr-4 border border-border-subtle rounded-[16px] text-[15px] transition-all duration-300 bg-surface-alt/60 text-text-main focus:bg-surface-alt focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-medium"
               />
             </div>
@@ -91,10 +101,11 @@ const Login = () => {
 
           <button 
             type="submit" 
-            className="w-full mt-4 py-4 bg-accent text-accent-text rounded-[16px] text-[16px] font-bold cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-1 hover:shadow-lg hover:bg-accent-hover active:translate-y-0 flex items-center justify-center gap-2 group"
+            disabled={isLoading}
+            className="w-full mt-4 py-4 bg-accent text-accent-text rounded-[16px] text-[16px] font-bold cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-1 hover:shadow-lg hover:bg-accent-hover active:translate-y-0 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-wait"
           >
-            Sign In to Dashboard
-            <i className="fas fa-arrow-right text-[14px] transition-transform duration-300 group-hover:translate-x-1 opacity-80"></i>
+            {isLoading ? 'Signing In...' : 'Sign In to Dashboard'}
+            {!isLoading && <i className="fas fa-arrow-right text-[14px] transition-transform duration-300 group-hover:translate-x-1 opacity-80"></i>}
           </button>
         </form>
       </div>

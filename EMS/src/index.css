@@ -17,23 +17,23 @@
 }
 
 :root {
-  --bg-base: #f8fafc;
+  --bg-base: #f4f4f5;
   --bg-surface: #ffffff;
-  --bg-surface-alt: #f8fafc;
-  --bg-surface-hover: #f1f5f9;
-  --border-subtle: #e2e8f0;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-placeholder: #94a3b8;
-  --accent-primary: #217e31;
-  --accent-hover: #217e31;
+  --bg-surface-alt: #fafafa;
+  --bg-surface-hover: #f4f4f5;
+  --border-subtle: #e4e4e7;
+  --text-main: #09090b;
+  --text-muted: #71717a;
+  --text-placeholder: #a1a1aa;
+  --accent-primary: #09090b;
+  --accent-hover: #27272a;
   --accent-text: #ffffff;
   --icon-cyan: #4f46e5;
   --icon-pink: #ec4899;
 
-  --bg-gradient-1: rgba(37, 99, 235, 0.05);
-  --bg-gradient-2: rgba(37, 99, 235, 0.03);
-  --bg-gradient-3: rgba(37, 99, 235, 0.02);
+  --bg-gradient-1: rgba(9, 9, 11, 0.05);
+  --bg-gradient-2: rgba(9, 9, 11, 0.03);
+  --bg-gradient-3: rgba(9, 9, 11, 0.02);
 }
 
 .dark {
