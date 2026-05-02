@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-surface-alt: var(--bg-surface-alt);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-accent: var(--accent-primary);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-icon-cyan: var(--icon-cyan);
+  --color-icon-pink: var(--icon-pink);
+}
+
+:root {
+  --bg-base: #f4f4f5;
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #fafafa;
+  --bg-surface-hover: #f4f4f5;
+  --border-subtle: #e4e4e7;
+  --text-main: #09090b;
+  --text-muted: #71717a;
+  --text-placeholder: #a1a1aa;
+  --accent-primary: #09090b;
+  --accent-hover: #27272a;
+  --accent-text: #ffffff;
+  --icon-cyan: #4f46e5;
+  --icon-pink: #ec4899;
+
+  --bg-gradient-1: rgba(9, 9, 11, 0.05);
+  --bg-gradient-2: rgba(9, 9, 11, 0.03);
+  --bg-gradient-3: rgba(9, 9, 11, 0.02);
+}
+
+.dark {
+  --bg-base: #111111;
+  --bg-surface: #1a1a1a;
+  --bg-surface-alt: #111111;
+  --bg-surface-hover: #333333;
+  --border-subtle: #333333;
+  --text-main: #ffffff;
+  --text-muted: #a3a3a3;
+  --text-placeholder: #666666;
+  --accent-primary: #ccff00;
+  --accent-hover: #d4ff00;
+  --accent-text: #1a1a1a;
+  --icon-cyan: #00f0ff;
+  --icon-pink: #ff00ff;
+
+  --bg-gradient-1: rgba(204, 255, 0, 0.05);
+  --bg-gradient-2: rgba(42, 44, 21, 0.2);
+  --bg-gradient-3: rgba(42, 44, 21, 0.1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(at 80% 50%, var(--bg-gradient-1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, var(--bg-gradient-2) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, var(--bg-gradient-3) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100%;
+}
