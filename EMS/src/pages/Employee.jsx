@@ -127,8 +127,8 @@ const Employee = () => {
 
   const uniquePositions = [
     "All Positions",
-    ...new Set(employees.map((emp) => emp.position).filter(Boolean)),
-  ].sort();
+    ...new Set(employees.map((emp) => emp.position).filter(Boolean).sort()),
+  ];
 
   const romanToInt = (roman) => {
     const map = {
