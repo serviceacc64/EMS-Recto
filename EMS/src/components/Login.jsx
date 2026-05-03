@@ -9,6 +9,8 @@ const Login = () => {
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -75,15 +77,22 @@ const Login = () => {
                 <i className="fas fa-lock text-text-placeholder"></i>
               </div>
               <input 
-                type="password" 
+                type={showPassword ? 'text' : 'password'} 
                 id="password" 
                 name="password" 
                 placeholder="Enter your password" 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full py-3.5 pl-11 pr-4 border border-border-subtle rounded-[16px] text-[15px] transition-all duration-300 bg-surface-alt/60 text-text-main focus:bg-surface-alt focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-medium"
+                className="w-full py-3.5 pl-11 pr-12 border border-border-subtle rounded-[16px] text-[15px] transition-all duration-300 bg-surface-alt/60 text-text-main focus:bg-surface-alt focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-medium"
               />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-placeholder hover:text-accent transition-colors"
+              >
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
             </div>
           </div>
 

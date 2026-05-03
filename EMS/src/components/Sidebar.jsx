@@ -18,31 +18,43 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-full md:w-[260px] h-auto min-h-0 md:min-h-screen md:h-screen shrink-0 bg-surface border-r border-border-subtle text-text-muted flex flex-col relative md:sticky top-0 overflow-visible md:overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.04)] z-20 transition-colors duration-300">
-      <div className="relative px-6 py-5 md:pt-7 md:pb-6 border-b border-border-subtle flex items-center gap-3">
-        <img 
-          src={logo} 
-          alt="EMS Logo" 
-          className="w-12 h-12 shrink-0 object-contain p-2 border border-border-subtle rounded-[14px] bg-surface-alt shadow-sm"
-        />
-        <h2 className="text-text-main text-[26px] font-extrabold tracking-tight m-0 leading-none relative after:content-['Employee_Management'] after:block after:mt-[6px] after:text-text-muted after:text-[10px] after:font-bold after:tracking-[0.1em] after:uppercase">
-          EMS
-        </h2>
+    <aside className="w-full md:w-[260px] h-auto min-h-0 md:min-h-screen md:h-screen shrink-0 bg-surface border-r border-border-subtle text-text-muted flex flex-col relative md:sticky top-0 overflow-visible md:overflow-hidden z-20 shadow-sm">
+      {/* Branding Section */}
+      <div className="px-6 py-8 border-b border-border-subtle/50">
+        <div className="flex items-center gap-3">
+          <img 
+            src={logo} 
+            alt="EMS Logo" 
+            className="w-11 h-11 object-contain p-2 border border-border-subtle rounded-xl bg-surface-alt shadow-sm"
+          />
+          <div>
+            <h2 className="text-text-main text-2xl font-black tracking-tight m-0 leading-none">
+              EMS
+            </h2>
+            <p className="text-[10px] font-bold text-text-placeholder uppercase tracking-widest mt-1 opacity-70">Recto Portal</p>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-none md:flex-1 mt-0 p-3 md:px-4 md:pt-6 overflow-visible md:overflow-y-auto">
-        <div className="mb-3 px-3 text-[11px] font-bold text-text-placeholder uppercase tracking-wider">Main Menu</div>
-        <ul className="list-none flex md:flex-col grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] md:flex gap-1.5 m-0 p-0">
+      {/* Navigation Section */}
+      <nav className="flex-1 p-4 md:px-4 md:pt-6">
+        <div className="mb-4 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">Main Menu</div>
+        <ul className="list-none flex md:flex-col gap-1.5 m-0 p-0">
           {navLinks.map((link) => (
             <li key={link.to} className="m-0">
               <NavLink 
                 to={link.to} 
-                className={({isActive}) => `group flex items-center gap-3 px-4 py-3 no-underline rounded-[12px] transition-all duration-200 font-medium text-[15px] ${isActive ? 'bg-accent/10 text-accent shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-main hover:translate-x-1'}`}
+                className={({isActive}) => `
+                  group flex items-center gap-3.5 px-4 py-3 no-underline rounded-xl transition-all duration-200 font-bold text-[14px]
+                  ${isActive 
+                    ? 'bg-accent/10 text-accent shadow-sm translate-x-1' 
+                    : 'text-text-muted hover:bg-surface-hover hover:text-text-main hover:translate-x-1'}
+                `}
               >
                 {({isActive}) => (
                   <>
                     <i className={`fas ${link.icon} text-[16px] w-[20px] transition-colors duration-200 ${isActive ? 'text-accent' : 'text-text-placeholder group-hover:text-accent'}`}></i>
-                    {link.label}
+                    <span className="tracking-tight">{link.label}</span>
                   </>
                 )}
               </NavLink>
@@ -51,13 +63,26 @@ const Sidebar = () => {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-border-subtle mt-auto flex flex-col gap-2">
-        <button onClick={toggleTheme} className="w-full text-center bg-surface text-text-muted border border-border-subtle py-3 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:bg-surface-hover hover:text-text-main hover:-translate-y-0.5">
-          <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'} text-[16px]`}></i> {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-        </button>
-        <button onClick={handleLogout} className="w-full text-center bg-surface text-text-muted border border-border-subtle py-3 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:bg-red-900/20 hover:text-red-500 hover:border-red-900/50 hover:-translate-y-0.5">
-          <i className="fas fa-sign-out-alt text-[16px]"></i> Logout
-        </button>
+      {/* Settings & Session Section (Side-by-Side) */}
+      <div className="p-4 border-t border-border-subtle/50 mt-auto bg-surface-alt/20">
+        <div className="flex gap-2">
+          <button 
+            onClick={toggleTheme} 
+            className="flex-1 h-11 bg-surface text-text-muted border border-border-subtle rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:bg-surface-hover hover:text-accent active:scale-95"
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'} text-[16px]`}></i>
+          </button>
+          
+          <button 
+            onClick={handleLogout} 
+            className="flex-1 h-11 bg-surface text-text-muted border border-border-subtle rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 active:scale-95"
+            title="Logout of System"
+          >
+            <i className="fas fa-sign-out-alt text-[16px]"></i>
+          </button>
+        </div>
+        <p className="text-[9px] text-center text-text-placeholder font-bold uppercase tracking-widest mt-3 opacity-40">System v1.0.0</p>
       </div>
     </aside>
   );

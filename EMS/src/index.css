@@ -88,3 +88,8 @@ body {
 #root {
   width: 100%;
 }
+@keyframes popInSpring { 0% { transform: scale(0) rotate(-45deg); opacity: 0; } 70% { transform: scale(1.1) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+@keyframes gentleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 15px rgba(204, 255, 0, 0.3); } 50% { box-shadow: 0 0 30px rgba(204, 255, 0, 0.6); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }

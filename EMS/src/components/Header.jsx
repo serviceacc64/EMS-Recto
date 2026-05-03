@@ -91,7 +91,6 @@ const Header = () => {
     if (path === '/dashboard') return { title: 'System Admin', subtitle: 'Welcome back,' };
     if (path === '/employee') return { title: 'Employee Management', subtitle: 'Manage your workforce' };
     if (path === '/report') return { title: 'System Analytics', subtitle: 'Performance & data' };
-    if (path === '/export') return { title: 'Data Export', subtitle: 'Generate records' };
     return { title: 'EMS Recto', subtitle: 'Personnel System' };
   };
 

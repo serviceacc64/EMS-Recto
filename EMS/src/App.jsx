@@ -6,7 +6,6 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Employee from './pages/Employee';
 import Report from './pages/Report';
-import Export from './pages/Export';
 
 function App() {
   return (
@@ -18,7 +17,6 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/employee" element={<Employee />} />
             <Route path="/report" element={<Report />} />
-            <Route path="/export" element={<Export />} />
           </Route>
         </Routes>
       </BrowserRouter>

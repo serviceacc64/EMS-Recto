@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 const Dashboard = () => {
@@ -237,6 +238,9 @@ const Dashboard = () => {
               <p className="text-text-muted text-sm font-medium m-0">
                 Top roles in the organization
               </p>
+              <Link to="/report" className="mt-2 inline-flex items-center gap-2 text-accent text-xs font-bold hover:underline transition-all">
+                <i className="fas fa-chart-line"></i> View full analytics
+              </Link>
             </div>
             <select className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm">
               <option>All Departments</option>
@@ -278,9 +282,9 @@ const Dashboard = () => {
           <h3 className="text-text-main font-bold text-lg m-0">
             Recent Personnel Updates
           </h3>
-          <button className="text-accent text-sm font-bold hover:underline transition-all">
+          <Link to="/employee" className="text-accent text-sm font-bold hover:underline transition-all">
             View all records
-          </button>
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">

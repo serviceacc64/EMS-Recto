@@ -475,12 +475,6 @@ const Employee = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <Link
-            to="/export"
-            className="inline-flex justify-center items-center gap-2 bg-surface text-text-muted border border-border-subtle px-5 py-2.5 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-surface-hover hover:text-text-main hover:-translate-y-0.5 group"
-          >
-            <i className="fas fa-file-excel text-accent"></i> Create Report
-          </Link>
           <button
             onClick={handleAdd}
             className="inline-flex justify-center items-center gap-2 bg-accent text-accent-text border border-accent px-5 py-2.5 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-accent-hover hover:scale-105 hover:shadow-md group"
