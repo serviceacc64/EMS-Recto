@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import Header from './Header';
 
 const Layout = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -43,6 +44,7 @@ const Layout = () => {
       <Sidebar />
       <main className="flex-1 min-w-0 md:h-screen h-auto flex flex-col overflow-visible md:overflow-hidden relative">
         <div ref={scrollContainerRef} className="flex-1 min-h-0 p-6 md:p-8 bg-transparent overflow-auto">
+          <Header />
           <Outlet />
         </div>
         
