@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
@@ -100,6 +100,20 @@ const Employee = () => {
     setIsLoading(false);
   };
 
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const empId = searchParams.get("id");
+    const action = searchParams.get("action");
+
+    if (empId && action === "view" && employees.length > 0) {
+      const emp = employees.find((e) => e.employeeNo === empId);
+      if (emp) {
+        handleView(emp);
+      }
+    }
+  }, [searchParams, employees]);
+
   const filteredEmployees = employees.filter((emp) => {
     if (positionFilter !== "All Positions" && emp.position !== positionFilter) {
       return false;
@@ -127,7 +141,12 @@ const Employee = () => {
 
   const uniquePositions = [
     "All Positions",
-    ...new Set(employees.map((emp) => emp.position).filter(Boolean).sort()),
+    ...new Set(
+      employees
+        .map((emp) => emp.position)
+        .filter(Boolean)
+        .sort(),
+    ),
   ];
 
   const romanToInt = (roman) => {
@@ -388,21 +407,6 @@ const Employee = () => {
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 mb-6 p-6 md:p-8 bg-surface border border-border-subtle rounded-[20px] shadow-sm shrink-0 transition-colors duration-300">
-        <div>
-          <span className="inline-flex mb-2 text-accent text-[12px] font-extrabold uppercase tracking-widest">
-            Employee Records
-          </span>
-          <h1 className="text-text-main text-[28px] md:text-[32px] font-extrabold leading-tight tracking-tight m-0">
-            Employee Management
-          </h1>
-        </div>
-        <span className="self-start md:self-auto shrink-0 inline-flex items-center gap-2 px-4 py-2.5 text-text-main text-[13px] font-bold border border-border-subtle rounded-full bg-surface-alt shadow-sm">
-          <i className="fas fa-users text-accent text-[14px]"></i> Personnel
-          directory
-        </span>
-      </div>
-
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 shrink-0">
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto flex-1">
           <div className="w-full md:w-[400px] flex items-center gap-3 bg-surface border border-border-subtle rounded-[14px] px-4 py-3 shadow-sm focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10 transition-all">
@@ -651,7 +655,7 @@ const Employee = () => {
                   .join(" ");
                 const avatarUrl =
                   emp.photoUrl ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random&color=fff&bold=true`;
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName + " " + emp.firstName)}&background=random&color=fff&bold=true`;
                 const isOpen = openDropdownIndex === emp.employeeNo;
 
                 return (
@@ -706,13 +710,32 @@ const Employee = () => {
 
                     {/* Middle: Name & Title */}
                     <div className="mb-4">
-                      <h3
-                        className="text-text-main font-bold text-[16px] truncate"
-                        title={fullName}
-                      >
-                        {fullName}
-                      </h3>
-                      <p className="text-text-muted text-[13px] font-medium mt-0.5 truncate">
+                      <div className="flex items-center gap-2">
+                        <h3
+                          className="text-text-main font-bold text-[16px] truncate m-0"
+                          title={fullName}
+                        >
+                          {fullName}
+                        </h3>
+                        {(() => {
+                          const missing = [];
+                          if (!emp.photoUrl) missing.push("Photo");
+                          if (!emp.philhealthNo) missing.push("PhilHealth");
+                          if (!emp.tin) missing.push("TIN");
+                          if (!emp.pagibigNo) missing.push("Pag-IBIG");
+                          
+                          if (missing.length > 0) {
+                            return (
+                              <i 
+                                className="fas fa-exclamation-circle text-red-500 text-sm animate-pulse cursor-help"
+                                title={`Missing Requirements: ${missing.join(", ")}`}
+                              ></i>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      <p className="text-text-muted text-[13px] font-medium mt-0.5 truncate m-0">
                         {emp.position}
                       </p>
                     </div>
@@ -1278,7 +1301,7 @@ const Employee = () => {
                 <img
                   src={
                     viewingEmployee.photoUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent([viewingEmployee.firstName, viewingEmployee.middleName, viewingEmployee.lastName].filter(Boolean).join(" "))}&background=random&color=fff&bold=true`
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(viewingEmployee.lastName + " " + viewingEmployee.firstName)}&background=random&color=fff&bold=true`
                   }
                   alt="Profile"
                   className="w-20 h-20 rounded-full object-cover border-4 border-surface shadow-md"
