@@ -95,7 +95,6 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col gap-6 p-1 md:p-0 animate-[fadeIn_0.4s_ease-out]">
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
@@ -238,7 +237,10 @@ const Dashboard = () => {
               <p className="text-text-muted text-sm font-medium m-0">
                 Top roles in the organization
               </p>
-              <Link to="/report" className="mt-2 inline-flex items-center gap-2 text-accent text-xs font-bold hover:underline transition-all">
+              <Link
+                to="/report"
+                className="mt-2 inline-flex items-center gap-2 text-accent text-xs font-bold hover:underline transition-all"
+              >
                 <i className="fas fa-chart-line"></i> View full analytics
               </Link>
             </div>
@@ -282,7 +284,10 @@ const Dashboard = () => {
           <h3 className="text-text-main font-bold text-lg m-0">
             Recent Personnel Updates
           </h3>
-          <Link to="/employee" className="text-accent text-sm font-bold hover:underline transition-all">
+          <Link
+            to="/employee"
+            className="text-accent text-sm font-bold hover:underline transition-all"
+          >
             View all records
           </Link>
         </div>

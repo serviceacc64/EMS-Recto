@@ -717,10 +717,10 @@ const Employee = () => {
                           if (!emp.philhealthNo) missing.push("PhilHealth");
                           if (!emp.tin) missing.push("TIN");
                           if (!emp.pagibigNo) missing.push("Pag-IBIG");
-                          
+
                           if (missing.length > 0) {
                             return (
-                              <i 
+                              <i
                                 className="fas fa-exclamation-circle text-red-500 text-sm animate-pulse cursor-help"
                                 title={`Missing Requirements: ${missing.join(", ")}`}
                               ></i>

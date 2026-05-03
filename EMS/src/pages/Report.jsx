@@ -58,7 +58,10 @@ const Report = () => {
   const filteredData = useMemo(() => {
     return employees.filter((emp) => {
       // Position Filter
-      if (filters.position !== "All" && (emp.position || "Unspecified") !== filters.position) {
+      if (
+        filters.position !== "All" &&
+        (emp.position || "Unspecified") !== filters.position
+      ) {
         return false;
       }
 
@@ -68,7 +71,10 @@ const Report = () => {
       }
 
       // Gender Filter
-      if (filters.gender !== "All" && (emp.gender || "Unspecified") !== filters.gender) {
+      if (
+        filters.gender !== "All" &&
+        (emp.gender || "Unspecified") !== filters.gender
+      ) {
         return false;
       }
 
@@ -219,11 +225,26 @@ const Report = () => {
 
     // 1. Define Headers
     const headers = [
-      "No.", "EMPLOYEE NO", "LAST NAME", "FIRST NAME", "MIDDLE NAME",
-      "BP NO", "PHILHEALTH NO", "PAGIBIG NO", "BANK ACCOUNT NO", "ITEM NUMBER",
-      "TIN", "GENDER", "BIRTHDATE", "DATE OF ORIGINAL APPOINTMENT", 
-      "DATE OF LAST PROMOTION", "POSITION", "SALARY GRADE", "STEP", 
-      "CIVIL STATUS", "CONTACT NUMBER"
+      "No.",
+      "EMPLOYEE NO",
+      "LAST NAME",
+      "FIRST NAME",
+      "MIDDLE NAME",
+      "BP NO",
+      "PHILHEALTH NO",
+      "PAGIBIG NO",
+      "BANK ACCOUNT NO",
+      "ITEM NUMBER",
+      "TIN",
+      "GENDER",
+      "BIRTHDATE",
+      "DATE OF ORIGINAL APPOINTMENT",
+      "DATE OF LAST PROMOTION",
+      "POSITION",
+      "SALARY GRADE",
+      "STEP",
+      "CIVIL STATUS",
+      "CONTACT NUMBER",
     ];
 
     // 2. Format Dates Helper
@@ -231,7 +252,7 @@ const Report = () => {
       if (!dateStr) return "";
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()}`;
+      return `${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getDate().toString().padStart(2, "0")}/${d.getFullYear()}`;
     };
 
     // 3. Build XML String
@@ -262,7 +283,7 @@ const Report = () => {
     <Column ss:Width="100" ss:Span="19"/>
     
     <Row ss:Height="35" ss:StyleID="Header">
-      ${headers.map(h => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join('')}
+      ${headers.map((h) => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join("")}
     </Row>`;
 
     // 4. Add Rows
@@ -302,7 +323,10 @@ const Report = () => {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `Workforce_Report_${new Date().toISOString().split('T')[0]}.xls`);
+    link.setAttribute(
+      "download",
+      `Workforce_Report_${new Date().toISOString().split("T")[0]}.xls`,
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -423,10 +447,12 @@ const Report = () => {
             title="Preview and Export to Excel"
           >
             <i className="fas fa-file-excel text-accent text-xs group-hover:rotate-12 transition-transform"></i>
-            <span className="text-[10px] font-black text-text-main uppercase tracking-widest">Export</span>
+            <span className="text-[10px] font-black text-text-main uppercase tracking-widest">
+              Export
+            </span>
           </button>
         </div>
-        </div>
+      </div>
 
       {/* 2. Analytics Bento Grid */}
       {!metrics ? (
@@ -1017,7 +1043,10 @@ const Report = () => {
       {/* 5. Export Preview Modal */}
       {showExportPreview && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md animate-[fadeIn_0.3s_ease-out]" onClick={() => setShowExportPreview(false)}></div>
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-md animate-[fadeIn_0.3s_ease-out]"
+            onClick={() => setShowExportPreview(false)}
+          ></div>
           <div className="bg-surface border border-border-subtle w-full max-w-7xl max-h-[90vh] rounded-[40px] shadow-2xl z-[201] overflow-hidden flex flex-col animate-[slideIn_0.4s_ease-out]">
             {/* Header */}
             <div className="p-8 border-b border-border-subtle bg-surface-alt flex items-center justify-between">
@@ -1026,13 +1055,19 @@ const Report = () => {
                   <i className="fas fa-file-export"></i>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-text-main tracking-tight m-0">Export Preview</h2>
+                  <h2 className="text-2xl font-black text-text-main tracking-tight m-0">
+                    Export Preview
+                  </h2>
                   <p className="text-text-muted text-sm font-medium m-0 mt-1">
-                    Reviewing <span className="text-accent font-bold">{filteredData.length}</span> records for professional report generation.
+                    Reviewing{" "}
+                    <span className="text-accent font-bold">
+                      {filteredData.length}
+                    </span>{" "}
+                    records for professional report generation.
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowExportPreview(false)}
                 className="w-12 h-12 rounded-full hover:bg-surface-alt transition-colors flex items-center justify-center text-text-muted hover:text-red-500"
               >
@@ -1047,12 +1082,31 @@ const Report = () => {
                   <thead>
                     <tr>
                       {[
-                        "No.", "EMPLOYEE NO", "LAST NAME", "FIRST NAME", "MIDDLE NAME",
-                        "BP NO", "PHILHEALTH NO", "PAGIBIG NO", "BANK ACCOUNT NO", "ITEM NUMBER",
-                        "TIN", "GENDER", "BIRTHDATE", "APPOINTMENT", "PROMOTION",
-                        "POSITION", "SG", "STEP", "CIVIL STATUS", "CONTACT"
+                        "No.",
+                        "EMPLOYEE NO",
+                        "LAST NAME",
+                        "FIRST NAME",
+                        "MIDDLE NAME",
+                        "BP NO",
+                        "PHILHEALTH NO",
+                        "PAGIBIG NO",
+                        "BANK ACCOUNT NO",
+                        "ITEM NUMBER",
+                        "TIN",
+                        "GENDER",
+                        "BIRTHDATE",
+                        "APPOINTMENT",
+                        "PROMOTION",
+                        "POSITION",
+                        "SG",
+                        "STEP",
+                        "CIVIL STATUS",
+                        "CONTACT",
                       ].map((h, i) => (
-                        <th key={i} className="bg-surface border-y border-r first:border-l border-border-subtle p-4 text-[10px] font-black text-text-muted uppercase tracking-widest sticky top-0 z-10">
+                        <th
+                          key={i}
+                          className="bg-surface border-y border-r first:border-l border-border-subtle p-4 text-[10px] font-black text-text-muted uppercase tracking-widest sticky top-0 z-10"
+                        >
                           {h}
                         </th>
                       ))}
@@ -1060,37 +1114,84 @@ const Report = () => {
                   </thead>
                   <tbody>
                     {filteredData.map((emp, idx) => (
-                      <tr key={idx} className="group hover:bg-accent/5 transition-colors">
-                        <td className="border-b border-r border-l border-border-subtle p-4 text-xs font-bold text-accent bg-surface-alt/30 group-hover:bg-accent/10">{idx + 1}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">{emp.employee_no}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-text-main">{emp.last_name}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">{emp.first_name}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-muted italic">{emp.middle_name || "---"}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.bp_no || "---"}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.philhealth_no || "---"}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.pagibig_no || "---"}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.bank_account_no || "---"}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.item_no || "---"}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.tin || "---"}</td>
+                      <tr
+                        key={idx}
+                        className="group hover:bg-accent/5 transition-colors"
+                      >
+                        <td className="border-b border-r border-l border-border-subtle p-4 text-xs font-bold text-accent bg-surface-alt/30 group-hover:bg-accent/10">
+                          {idx + 1}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.employee_no}
+                        </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-text-main">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] ${emp.gender === 'Female' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {emp.last_name}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.first_name}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-muted italic">
+                          {emp.middle_name || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.bp_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.philhealth_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.pagibig_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.bank_account_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.item_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.tin || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-text-main">
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] ${emp.gender === "Female" ? "bg-pink-100 text-pink-600" : "bg-blue-100 text-blue-600"}`}
+                          >
                             {emp.gender}
                           </span>
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-muted">
-                          {emp.birthdate ? new Date(emp.birthdate).toLocaleDateString() : "---"}
+                          {emp.birthdate
+                            ? new Date(emp.birthdate).toLocaleDateString()
+                            : "---"}
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-muted">
-                          {emp.original_appointment_date ? new Date(emp.original_appointment_date).toLocaleDateString() : "---"}
+                          {emp.original_appointment_date
+                            ? new Date(
+                                emp.original_appointment_date,
+                              ).toLocaleDateString()
+                            : "---"}
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-muted italic">
-                          {emp.last_promotion_date ? new Date(emp.last_promotion_date).toLocaleDateString() : "---"}
+                          {emp.last_promotion_date
+                            ? new Date(
+                                emp.last_promotion_date,
+                              ).toLocaleDateString()
+                            : "---"}
                         </td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-accent">{emp.position}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-black text-text-main">{emp.salary_grade}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">{emp.step}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">{emp.civil_status}</td>
-                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">{emp.contact_no || "---"}</td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-accent">
+                          {emp.position}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-black text-text-main">
+                          {emp.salary_grade}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.step}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.civil_status}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
+                          {emp.contact_no || "---"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1102,16 +1203,19 @@ const Report = () => {
             <div className="p-8 bg-surface-alt border-t border-border-subtle flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4 text-text-muted text-sm font-medium">
                 <i className="fas fa-info-circle text-accent"></i>
-                <span>Data will be exported as a styled <b>.xls</b> file with custom row spacing.</span>
+                <span>
+                  Data will be exported as a styled <b>.xls</b> file with custom
+                  row spacing.
+                </span>
               </div>
               <div className="flex items-center gap-4 w-full md:w-auto">
-                <button 
+                <button
                   onClick={() => setShowExportPreview(false)}
                   className="flex-1 md:flex-none px-8 py-4 rounded-2xl text-sm font-black text-text-muted border border-border-subtle hover:bg-surface transition-all active:scale-95"
                 >
                   Back to Filters
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     downloadExcel();
                     setShowExportPreview(false);
