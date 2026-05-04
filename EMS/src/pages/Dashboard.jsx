@@ -305,48 +305,70 @@ const Dashboard = () => {
                   Employee No
                 </th>
                 <th className="px-6 py-4 text-text-muted text-[11px] font-bold uppercase tracking-widest text-right">
-                  Status
+                  Profile Health
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              {recentActivity.map((emp, i) => (
-                <tr
-                  key={i}
-                  className="hover:bg-surface-alt/50 transition-colors group"
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-surface-alt border border-border-subtle flex items-center justify-center text-[11px] font-bold text-accent">
-                        {emp.last_name?.[0]}
-                        {emp.first_name?.[0]}
+              {recentActivity.map((emp, i) => {
+                const completionFields = ['photo_url', 'philhealth_no', 'tin', 'pagibig_no', 'contact_no'];
+                const filledFields = completionFields.filter(field => emp[field]).length;
+                const percentage = Math.round((filledFields / completionFields.length) * 100);
+                
+                return (
+                  <tr
+                    key={i}
+                    className="hover:bg-surface-alt/50 transition-colors group"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-surface-alt border border-border-subtle flex items-center justify-center text-[11px] font-bold text-accent">
+                          {emp.last_name?.[0]}
+                          {emp.first_name?.[0]}
+                        </div>
+                        <div>
+                          <p className="text-text-main text-sm font-bold m-0 group-hover:text-accent transition-colors">
+                            {emp.last_name}, {emp.first_name}
+                          </p>
+                          <p className="text-text-placeholder text-[11px] font-medium m-0">
+                            {emp.gender}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-text-main text-sm font-bold m-0 group-hover:text-accent transition-colors">
-                          {emp.last_name}, {emp.first_name}
-                        </p>
-                        <p className="text-text-placeholder text-[11px] font-medium m-0">
-                          {emp.gender}
-                        </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-text-muted text-sm font-semibold">
+                        {emp.position}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-text-placeholder font-bold">
+                      {emp.employee_no}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-black uppercase tracking-tighter ${
+                            percentage === 100 ? 'text-green-500' : percentage > 50 ? 'text-amber-500' : 'text-rose-500'
+                          }`}>
+                            {percentage === 100 ? 'Complete' : `${percentage}% Ready`}
+                          </span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            percentage === 100 ? 'bg-green-500 animate-pulse' : percentage > 50 ? 'bg-amber-500' : 'bg-rose-500'
+                          }`}></div>
+                        </div>
+                        <div className="w-24 h-1 bg-surface-alt border border-border-subtle rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-1000 ${
+                              percentage === 100 ? 'bg-green-500' : percentage > 50 ? 'bg-amber-500' : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-text-muted text-sm font-semibold">
-                      {emp.position}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-text-placeholder font-bold">
-                    {emp.employee_no}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="inline-flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1 rounded-full text-[11px] font-bold border border-green-500/20">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                      Verified
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
