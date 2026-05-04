@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
 const Header = () => {
@@ -135,7 +135,7 @@ const Header = () => {
                   <div className="p-6 text-center text-text-muted text-xs font-medium">No results found for "{searchTerm}"</div>
                 ) : (
                   searchResults.map((emp, i) => (
-                    <a key={i} href={`/employee?id=${emp.employee_no}&action=view`} className="flex items-center gap-3 p-3 hover:bg-surface-alt transition-colors group border-b border-border-subtle last:border-0">
+                    <Link key={i} to={`/employee?id=${emp.employee_no}&action=view`} className="flex items-center gap-3 p-3 hover:bg-surface-alt transition-colors group border-b border-border-subtle last:border-0">
                       <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold shrink-0">{emp.last_name?.[0]}{emp.first_name?.[0]}</div>
                       <div className="overflow-hidden">
                         <div className="flex items-center gap-2">
@@ -155,7 +155,7 @@ const Header = () => {
                         <p className="text-text-placeholder text-[11px] font-medium m-0 truncate">{emp.position}</p>
                       </div>
                       <i className="fas fa-chevron-right text-[10px] text-text-placeholder ml-auto group-hover:translate-x-0.5 transition-transform"></i>
-                    </a>
+                    </Link>
                   ))
                 )}
               </div>
@@ -242,7 +242,7 @@ const Header = () => {
                       <p className="text-text-muted text-[11px] font-medium m-0">{selectedNotification.id === 'birthdays' ? `Birthday: ${new Date(emp.birthdate).toLocaleDateString()}` : emp.position}</p>
                     </div>
                   </div>
-                  <a href={`/employee?id=${emp.employee_no}&action=view`} className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-accent border border-border-subtle hover:bg-accent hover:text-accent-text transition-all shadow-sm"><i className="fas fa-arrow-right text-xs"></i></a>
+                  <Link to={`/employee?id=${emp.employee_no}&action=view`} className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-accent border border-border-subtle hover:bg-accent hover:text-accent-text transition-all shadow-sm"><i className="fas fa-arrow-right text-xs"></i></Link>
                 </div>
               ))}
             </div>
