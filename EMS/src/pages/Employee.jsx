@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { getSalary } from "../lib/salaryData";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
@@ -24,6 +25,44 @@ const Employee = () => {
   });
   const [positionFilter, setPositionFilter] = useState("All Positions");
   const itemsPerPage = 8;
+
+  const [lastHolder, setLastHolder] = useState(null);
+  const [isLastHolderModalOpen, setIsLastHolderModalOpen] = useState(false);
+  const [isLoadingLastHolder, setIsLoadingLastHolder] = useState(false);
+
+  const fetchLastHolder = async (itemNo) => {
+    setIsLoadingLastHolder(true);
+    setIsLastHolderModalOpen(true);
+    setLastHolder(null);
+
+    const { data: history, error: historyError } = await supabase
+      .from("item_history")
+      .select("*")
+      .eq("item_no", itemNo)
+      .order("vacated_at", { ascending: false })
+      .limit(1);
+
+    if (historyError || !history || history.length === 0) {
+      setLastHolder({ notFound: true, itemNo });
+      setIsLoadingLastHolder(false);
+      return;
+    }
+
+    const previousEmployeeNo = history[0].employee_no;
+
+    const { data: emp, error: empError } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("employee_no", previousEmployeeNo)
+      .single();
+
+    if (empError || !emp) {
+      setLastHolder({ deleted: true, employeeNo: previousEmployeeNo, itemNo });
+    } else {
+      setLastHolder({ ...toCamelCase(emp), vacatedAt: history[0].vacated_at, itemNo });
+    }
+    setIsLoadingLastHolder(false);
+  };
 
   const initialFormState = {
     lastName: "",
@@ -369,6 +408,9 @@ const Employee = () => {
     const dbData = toSnakeCase(dataToSave);
 
     if (editingIndex !== null) {
+      const oldEmp = employees[editingIndex];
+      const oldItemNo = oldEmp.itemNo;
+
       const { error } = await supabase
         .from("employees")
         .update(dbData)
@@ -377,6 +419,15 @@ const Employee = () => {
         alert("Update failed: " + error.message);
         return;
       }
+      
+      // TRACK ITEM HISTORY: If item number changed, log it
+      if (oldItemNo && oldItemNo !== formData.itemNo) {
+        await supabase.from("item_history").insert([{
+          item_no: oldItemNo,
+          employee_no: formData.employeeNo
+        }]);
+      }
+
       const newEmployees = [...employees];
       newEmployees[editingIndex] = dataToSave;
       setEmployees(newEmployees);
@@ -550,10 +601,13 @@ const Employee = () => {
                 <th className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
                   Salary Grade
                 </th>
-                <th className="p-4 md:p-5 w-[14%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                  Base Salary
+                </th>
+                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
                   Contact Number
                 </th>
-                <th className="p-4 md:p-5 w-[16%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
                   Actions
                 </th>
               </tr>
@@ -562,7 +616,7 @@ const Employee = () => {
               {paginatedEmployees.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="8"
+                    colSpan="9"
                     className="p-[16px_18px] text-center text-text-muted"
                   >
                     No employee records found.
@@ -599,6 +653,9 @@ const Employee = () => {
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold bg-surface-alt text-accent border border-accent/30">
                         {emp.salaryGrade}
                       </span>
+                    </td>
+                    <td className="p-4 md:p-5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                      {getSalary(emp.salaryGrade, emp.step)}
                     </td>
                     <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {emp.contactNo}
@@ -775,6 +832,14 @@ const Employee = () => {
                         </span>
                         <span className="text-accent font-bold truncate block">
                           {emp.salaryGrade} / {emp.step}
+                        </span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-0.5">
+                          Base Salary
+                        </span>
+                        <span className="text-green-500 font-bold truncate block">
+                          {getSalary(emp.salaryGrade, emp.step)}
                         </span>
                       </div>
                     </div>
@@ -1390,6 +1455,14 @@ const Employee = () => {
                     </div>
                     <div>
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Base Salary
+                      </span>
+                      <span className="text-green-500 font-bold text-[13px]">
+                        {getSalary(viewingEmployee.salaryGrade, viewingEmployee.step)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
                         Appt. Date
                       </span>
                       <span className="text-text-main font-semibold text-[13px]">
@@ -1456,9 +1529,19 @@ const Employee = () => {
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
                         Item No.
                       </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.itemNo || "-"}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="text-text-main font-semibold text-[13px]">
+                          {viewingEmployee.itemNo || "-"}
+                        </span>
+                        {viewingEmployee.itemNo && (
+                          <button
+                            onClick={() => fetchLastHolder(viewingEmployee.itemNo)}
+                            className="text-[10px] bg-surface-alt px-2 py-0.5 rounded border border-border-subtle text-accent hover:bg-accent hover:text-white transition-colors"
+                          >
+                            View Last Holder
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
@@ -1471,6 +1554,67 @@ const Employee = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Last Holder Modal */}
+      {isLastHolderModalOpen && (
+        <div className="fixed inset-0 z-[1002] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
+            onClick={() => setIsLastHolderModalOpen(false)}
+          ></div>
+          <div className="relative z-[1003] w-full max-w-[400px] bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300 overflow-hidden">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-text-main text-[18px] font-extrabold tracking-tight">
+                  Last Holder Info
+                </h2>
+                <button
+                  onClick={() => setIsLastHolderModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-main hover:bg-surface-alt rounded-full transition-colors"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              {isLoadingLastHolder ? (
+                <div className="py-8 flex justify-center">
+                  <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : lastHolder?.notFound ? (
+                <div className="text-center py-6 text-text-muted">
+                  <i className="fas fa-history text-3xl mb-3 opacity-50"></i>
+                  <p className="text-[14px]">No previous holder found for Item: <b>{lastHolder.itemNo}</b></p>
+                </div>
+              ) : lastHolder?.deleted ? (
+                <div className="text-center py-6 text-text-muted">
+                  <i className="fas fa-user-slash text-3xl mb-3 opacity-50 text-red-400"></i>
+                  <p className="text-[14px]">The last holder (Employee {lastHolder.employeeNo}) was deleted from the system.</p>
+                </div>
+              ) : lastHolder ? (
+                <div className="flex flex-col items-center text-center bg-surface-alt/50 p-6 rounded-[16px] border border-border-subtle">
+                  <img
+                    src={
+                      lastHolder.photoUrl ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(lastHolder.lastName + " " + lastHolder.firstName)}&background=random&color=fff&bold=true`
+                    }
+                    alt="Profile"
+                    className="w-16 h-16 rounded-full object-cover border-4 border-surface shadow-sm mb-3"
+                  />
+                  <h3 className="text-text-main font-bold text-[16px]">
+                    {lastHolder.lastName}, {lastHolder.firstName}
+                  </h3>
+                  <p className="text-text-muted text-[13px] font-medium mb-1">
+                    {lastHolder.position}
+                  </p>
+                  <span className="text-[11px] font-bold px-2 py-0.5 bg-accent/10 text-accent rounded mt-2">
+                    Vacated: {new Date(lastHolder.vacatedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

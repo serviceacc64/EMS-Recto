@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getSalary } from "../lib/salaryData";
 
 const Report = () => {
   const [employees, setEmployees] = useState([]);
@@ -243,6 +244,7 @@ const Report = () => {
       "POSITION",
       "SALARY GRADE",
       "STEP",
+      "BASE SALARY",
       "CIVIL STATUS",
       "CONTACT NUMBER",
     ];
@@ -280,7 +282,7 @@ const Report = () => {
  <Worksheet ss:Name="Workforce Report">
   <Table ss:DefaultRowHeight="25">
     <Column ss:Width="30"/> 
-    <Column ss:Width="100" ss:Span="19"/>
+    <Column ss:Width="100" ss:Span="20"/>
     
     <Row ss:Height="35" ss:StyleID="Header">
       ${headers.map((h) => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join("")}
@@ -308,6 +310,7 @@ const Report = () => {
       <Cell><Data ss:Type="String">${emp.position || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.salary_grade || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.step || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${getSalary(emp.salary_grade, emp.step)}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.civil_status || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.contact_no || ""}</Data></Cell>
     </Row>`;
@@ -1100,6 +1103,7 @@ const Report = () => {
                         "POSITION",
                         "SG",
                         "STEP",
+                        "BASE SALARY",
                         "CIVIL STATUS",
                         "CONTACT",
                       ].map((h, i) => (
@@ -1185,6 +1189,9 @@ const Report = () => {
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
                           {emp.step}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-green-500">
+                          {getSalary(emp.salary_grade, emp.step)}
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
                           {emp.civil_status}
