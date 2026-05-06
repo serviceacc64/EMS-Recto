@@ -90,6 +90,8 @@ const Header = () => {
     const path = location.pathname;
     if (path === '/dashboard') return { title: 'System Admin', subtitle: 'Welcome back,' };
     if (path === '/employee') return { title: 'Employee Management', subtitle: 'Manage your workforce' };
+    if (path === '/junior-high') return { title: 'Junior Highschool', subtitle: 'Personnel Directory' };
+    if (path === '/senior-high') return { title: 'Senior Highschool', subtitle: 'Personnel Directory' };
     if (path === '/report') return { title: 'System Analytics', subtitle: 'Performance & data' };
     return { title: 'EMS Recto', subtitle: 'Personnel System' };
   };

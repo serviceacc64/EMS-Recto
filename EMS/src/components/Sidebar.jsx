@@ -37,7 +37,7 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation Section */}
-      <nav className="flex-1 p-4 md:px-4 md:pt-6">
+      <nav className="p-4 md:px-4 md:pt-6">
         <div className="mb-4 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">Main Menu</div>
         <ul className="list-none flex md:flex-col gap-1.5 m-0 p-0">
           {navLinks.map((link) => (
@@ -60,6 +60,49 @@ const Sidebar = () => {
               </NavLink>
             </li>
           ))}
+        </ul>
+      </nav>
+
+      {/* Education Level Section */}
+      <nav className="flex-1 p-4 md:px-4 md:pt-2 border-t border-border-subtle/30 mt-2">
+        <div className="mb-4 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">Education Level</div>
+        <ul className="list-none flex md:flex-col gap-1.5 m-0 p-0">
+          <li className="m-0">
+            <NavLink
+              to="/junior-high"
+              className={({ isActive }) => `
+                group flex items-center gap-3.5 px-4 py-3 no-underline rounded-xl transition-all duration-200 font-bold text-[14px]
+                ${isActive
+                  ? 'bg-blue-500/10 text-blue-400 shadow-sm translate-x-1'
+                  : 'text-text-muted hover:bg-surface-hover hover:text-text-main hover:translate-x-1'}
+              `}
+            >
+              {({ isActive }) => (
+                <>
+                  <i className={`fas fa-school text-[16px] w-[20px] transition-colors duration-200 ${isActive ? 'text-blue-400' : 'text-text-placeholder group-hover:text-blue-400'}`}></i>
+                  <span className="tracking-tight">Junior High</span>
+                </>
+              )}
+            </NavLink>
+          </li>
+          <li className="m-0">
+            <NavLink
+              to="/senior-high"
+              className={({ isActive }) => `
+                group flex items-center gap-3.5 px-4 py-3 no-underline rounded-xl transition-all duration-200 font-bold text-[14px]
+                ${isActive
+                  ? 'bg-indigo-500/10 text-indigo-400 shadow-sm translate-x-1'
+                  : 'text-text-muted hover:bg-surface-hover hover:text-text-main hover:translate-x-1'}
+              `}
+            >
+              {({ isActive }) => (
+                <>
+                  <i className={`fas fa-graduation-cap text-[16px] w-[20px] transition-colors duration-200 ${isActive ? 'text-indigo-400' : 'text-text-placeholder group-hover:text-indigo-400'}`}></i>
+                  <span className="tracking-tight">Senior High</span>
+                </>
+              )}
+            </NavLink>
+          </li>
         </ul>
       </nav>
 

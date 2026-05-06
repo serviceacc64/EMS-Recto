@@ -5,6 +5,8 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Employee from './pages/Employee';
+import JuniorHigh from './pages/JuniorHigh';
+import SeniorHigh from './pages/SeniorHigh';
 import Report from './pages/Report';
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/employee" element={<Employee />} />
+            <Route path="/junior-high" element={<JuniorHigh />} />
+            <Route path="/senior-high" element={<SeniorHigh />} />
             <Route path="/report" element={<Report />} />
           </Route>
         </Routes>
