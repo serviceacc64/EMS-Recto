@@ -26,41 +26,44 @@ const Employee = () => {
   const [positionFilter, setPositionFilter] = useState("All Positions");
   const itemsPerPage = 8;
 
-  const [lastHolder, setLastHolder] = useState(null);
+  const [itemHistory, setItemHistory] = useState([]);
   const [isLastHolderModalOpen, setIsLastHolderModalOpen] = useState(false);
   const [isLoadingLastHolder, setIsLoadingLastHolder] = useState(false);
 
-  const fetchLastHolder = async (itemNo) => {
+  const fetchItemHistory = async (itemNo) => {
     setIsLoadingLastHolder(true);
     setIsLastHolderModalOpen(true);
-    setLastHolder(null);
+    setItemHistory([]);
 
     const { data: history, error: historyError } = await supabase
       .from("item_history")
       .select("*")
       .eq("item_no", itemNo)
-      .order("vacated_at", { ascending: false })
-      .limit(1);
+      .order("assigned_at", { ascending: false });
 
     if (historyError || !history || history.length === 0) {
-      setLastHolder({ notFound: true, itemNo });
+      setItemHistory([{ notFound: true, itemNo }]);
       setIsLoadingLastHolder(false);
       return;
     }
 
-    const previousEmployeeNo = history[0].employee_no;
+    const historyWithDetails = await Promise.all(
+      history.map(async (entry) => {
+        const { data: emp, error: empError } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("employee_no", entry.employee_no)
+          .single();
 
-    const { data: emp, error: empError } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("employee_no", previousEmployeeNo)
-      .single();
+        if (empError || !emp) {
+          return { ...entry, deleted: true };
+        } else {
+          return { ...entry, ...toCamelCase(emp) };
+        }
+      })
+    );
 
-    if (empError || !emp) {
-      setLastHolder({ deleted: true, employeeNo: previousEmployeeNo, itemNo });
-    } else {
-      setLastHolder({ ...toCamelCase(emp), vacatedAt: history[0].vacated_at, itemNo });
-    }
+    setItemHistory(historyWithDetails);
     setIsLoadingLastHolder(false);
   };
 
@@ -87,6 +90,9 @@ const Employee = () => {
     originalAppointmentDate: "",
     lastPromotionDate: "",
     photoUrl: "",
+    department: "",
+    personnelCategory: "",
+    schoolLevel: "",
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -170,6 +176,9 @@ const Employee = () => {
       emp.step,
       emp.salaryGrade,
       emp.contactNo,
+      emp.department,
+      emp.personnelCategory,
+      emp.schoolLevel,
     ]
       .filter(Boolean)
       .join(" ")
@@ -384,6 +393,9 @@ const Employee = () => {
       "salaryGrade",
       "step",
       "originalAppointmentDate",
+      "department",
+      "personnelCategory",
+      "schoolLevel",
     ];
     for (let field of required) {
       if (!formData[field] || String(formData[field]).trim() === "") {
@@ -419,13 +431,37 @@ const Employee = () => {
         alert("Update failed: " + error.message);
         return;
       }
-      
-      // TRACK ITEM HISTORY: If item number changed, log it
-      if (oldItemNo && oldItemNo !== formData.itemNo) {
-        await supabase.from("item_history").insert([{
-          item_no: oldItemNo,
-          employee_no: formData.employeeNo
-        }]);
+
+      // TRACK ITEM HISTORY: If item number changed, update ledger
+      if (oldItemNo !== formData.itemNo) {
+        // Close old assignment record
+        if (oldItemNo) {
+          const { error: closeError } = await supabase
+            .from("item_history")
+            .update({ vacated_at: new Date().toISOString() })
+            .eq("item_no", oldItemNo)
+            .eq("employee_no", formData.employeeNo)
+            .is("vacated_at", null);
+
+          if (closeError) {
+            // Handle error silently or notify user
+          }
+        }
+
+        // Create new assignment record
+        if (formData.itemNo) {
+          const { error: openError } = await supabase.from("item_history").insert([
+            {
+              item_no: formData.itemNo,
+              employee_no: formData.employeeNo,
+              assigned_at: new Date().toISOString(),
+            },
+          ]);
+
+          if (openError) {
+            // Handle error silently or notify user
+          }
+        }
       }
 
       const newEmployees = [...employees];
@@ -440,6 +476,21 @@ const Employee = () => {
       if (error) {
         alert("Insert failed: " + error.message);
         return;
+      }
+
+      // Log initial item assignment
+      if (formData.itemNo) {
+        const { error: historyError } = await supabase.from("item_history").insert([
+          {
+            item_no: formData.itemNo,
+            employee_no: formData.employeeNo,
+            assigned_at: new Date().toISOString(),
+          },
+        ]);
+
+        if (historyError) {
+          // Handle error silently or notify user
+        }
       }
       const newEmployees = [toCamelCase(data[0]), ...employees];
       setEmployees(newEmployees);
@@ -760,10 +811,10 @@ const Employee = () => {
                     </div>
 
                     {/* Middle: Name & Title */}
-                    <div className="mb-4">
+                    <div className="mb-4 flex-1">
                       <div className="flex items-center gap-2">
                         <h3
-                          className="text-text-main font-bold text-[16px] truncate m-0"
+                          className="text-text-main font-extrabold text-[16px] truncate m-0"
                           title={fullName}
                         >
                           {fullName}
@@ -786,59 +837,70 @@ const Employee = () => {
                           return null;
                         })()}
                       </div>
-                      <p className="text-text-muted text-[13px] font-medium mt-0.5 truncate m-0">
+                      <p className="text-text-muted text-[12px] font-bold mt-0.5 truncate m-0 uppercase tracking-tight">
                         {emp.position}
                       </p>
+                      <div className="flex flex-wrap gap-1.5 mt-3 min-h-[48px] content-start">
+                        <span className="px-2 py-1 rounded-md bg-accent/10 text-accent text-[9px] font-black uppercase tracking-wider border border-accent/20">
+                          {emp.personnelCategory}
+                        </span>
+                        <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase tracking-wider border border-blue-500/20">
+                          {emp.schoolLevel}
+                        </span>
+                        <span className="px-2 py-1 rounded-md bg-surface-alt text-text-muted text-[9px] font-black uppercase tracking-wider border border-border-subtle">
+                          {emp.department}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Details Grid */}
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 bg-surface-alt/50 p-3 rounded-[12px] mb-4 text-[12px]">
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-3 bg-surface-alt/50 p-4 rounded-[16px] mb-4 text-[12px] border border-border-subtle/50">
                       <div>
-                        <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-0.5">
+                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
                           Emp No
                         </span>
                         <span
-                          className="text-text-main font-semibold truncate block"
+                          className="text-text-main font-bold truncate block"
                           title={emp.employeeNo}
                         >
                           {emp.employeeNo}
                         </span>
                       </div>
                       <div>
-                        <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-0.5">
+                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
                           Joined
                         </span>
-                        <span className="text-text-main font-semibold truncate block">
+                        <span className="text-text-main font-bold truncate block">
                           {emp.originalAppointmentDate
                             ? new Date(
-                                emp.originalAppointmentDate,
-                              ).toLocaleDateString()
+                              emp.originalAppointmentDate,
+                            ).toLocaleDateString()
                             : "N/A"}
                         </span>
                       </div>
                       <div>
-                        <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-0.5">
+                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
                           Gender
                         </span>
                         <span
-                          className={`font-semibold ${emp.gender === "Male" ? "text-icon-cyan" : emp.gender === "Female" ? "text-icon-pink" : "text-text-main"}`}
+                          className={`font-black uppercase text-[11px] ${emp.gender === "Male" ? "text-icon-cyan" : emp.gender === "Female" ? "text-icon-pink" : "text-text-main"}`}
                         >
                           {emp.gender}
                         </span>
                       </div>
                       <div>
-                        <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-0.5">
+                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
                           SG / Step
                         </span>
-                        <span className="text-accent font-bold truncate block">
-                          {emp.salaryGrade} / {emp.step}
+                        <span className="text-accent font-black truncate block uppercase text-[11px]">
+                          {String(emp.salaryGrade).toUpperCase().replace("SG ", "")} / {emp.step}
                         </span>
                       </div>
-                      <div className="col-span-2">
-                        <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-0.5">
-                          Base Salary
+                      <div className="col-span-2 pt-1">
+                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
+                          Monthly Base Salary
                         </span>
-                        <span className="text-green-500 font-bold truncate block">
+                        <span className="text-green-500 font-black text-[14px] truncate block tracking-tight">
                           {getSalary(emp.salaryGrade, emp.step)}
                         </span>
                       </div>
@@ -1165,6 +1227,67 @@ const Employee = () => {
                     <h3 className="text-text-main text-[15px] mb-5 font-bold border-b border-border-subtle pb-3">
                       Employment Details
                     </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          Personnel Category <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          name="personnelCategory"
+                          value={formData.personnelCategory}
+                          onChange={handleInputChange}
+                          required
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer"
+                        >
+                          <option value="">Select Category</option>
+                          <option value="Teaching">Teaching</option>
+                          <option value="Non-Teaching">Non-Teaching</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          School Level <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          name="schoolLevel"
+                          value={formData.schoolLevel}
+                          onChange={handleInputChange}
+                          required
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer"
+                        >
+                          <option value="">Select Level</option>
+                          <option value="Junior High">Junior High</option>
+                          <option value="Senior High">Senior High</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mb-5">
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          Department <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="department"
+                          value={formData.department}
+                          onChange={handleInputChange}
+                          required
+                          list="deptList"
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
+                          placeholder="e.g., Mathematics"
+                        />
+                        <datalist id="deptList">
+                          <option value="Science" />
+                          <option value="Mathematics" />
+                          <option value="English" />
+                          <option value="Filipino" />
+                          <option value="MAPEH" />
+                          <option value="TVL / TLE" />
+                          <option value="Administrative Office" />
+                          <option value="Finance" />
+                        </datalist>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
@@ -1406,9 +1529,24 @@ const Employee = () => {
                         Birthdate
                       </span>
                       <span className="text-text-main font-semibold text-[13px]">
-                        {new Date(
-                          viewingEmployee.birthdate,
-                        ).toLocaleDateString()}
+                        {new Date(viewingEmployee.birthdate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Age
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {(() => {
+                          const birth = new Date(viewingEmployee.birthdate);
+                          const now = new Date();
+                          let age = now.getFullYear() - birth.getFullYear();
+                          const m = now.getMonth() - birth.getMonth();
+                          if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+                            age--;
+                          }
+                          return age;
+                        })()} Years Old
                       </span>
                     </div>
                     <div>
@@ -1419,7 +1557,7 @@ const Employee = () => {
                         {viewingEmployee.civilStatus}
                       </span>
                     </div>
-                    <div className="col-span-2">
+                    <div>
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
                         Contact Number
                       </span>
@@ -1437,6 +1575,46 @@ const Employee = () => {
                     Employment Details
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-surface-alt/50 p-5 rounded-[16px] border border-border-subtle">
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Employee ID
+                      </span>
+                      <span className="text-accent font-bold text-[13px]">
+                        {viewingEmployee.employeeNo}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Category
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.personnelCategory}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        School Level
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.schoolLevel}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Department
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.department}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-2">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Position
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.position}
+                      </span>
+                    </div>
                     <div>
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
                         Salary Grade
@@ -1453,33 +1631,29 @@ const Employee = () => {
                         {viewingEmployee.step}
                       </span>
                     </div>
-                    <div>
+                    <div className="col-span-2">
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Base Salary
+                        Monthly Base Salary
                       </span>
-                      <span className="text-green-500 font-bold text-[13px]">
+                      <span className="text-green-500 font-bold text-[15px]">
                         {getSalary(viewingEmployee.salaryGrade, viewingEmployee.step)}
                       </span>
                     </div>
                     <div>
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Appt. Date
+                        Appointment Date
                       </span>
                       <span className="text-text-main font-semibold text-[13px]">
-                        {new Date(
-                          viewingEmployee.originalAppointmentDate,
-                        ).toLocaleDateString()}
+                        {new Date(viewingEmployee.originalAppointmentDate).toLocaleDateString()}
                       </span>
                     </div>
                     <div>
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Promotion
+                        Last Promotion
                       </span>
                       <span className="text-text-main font-semibold text-[13px]">
                         {viewingEmployee.lastPromotionDate
-                          ? new Date(
-                              viewingEmployee.lastPromotionDate,
-                            ).toLocaleDateString()
+                          ? new Date(viewingEmployee.lastPromotionDate).toLocaleDateString()
                           : "N/A"}
                       </span>
                     </div>
@@ -1529,16 +1703,17 @@ const Employee = () => {
                       <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
                         Item No.
                       </span>
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className="text-text-main font-semibold text-[13px]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-text-main font-semibold text-[13px] break-all">
                           {viewingEmployee.itemNo || "-"}
                         </span>
                         {viewingEmployee.itemNo && (
                           <button
-                            onClick={() => fetchLastHolder(viewingEmployee.itemNo)}
-                            className="text-[10px] bg-surface-alt px-2 py-0.5 rounded border border-border-subtle text-accent hover:bg-accent hover:text-white transition-colors"
+                            onClick={() => fetchItemHistory(viewingEmployee.itemNo)}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/10 text-accent text-[9px] font-black uppercase tracking-widest hover:bg-accent hover:text-black transition-all duration-200 border border-accent/20"
+                            title="View Assignment History"
                           >
-                            View Last Holder
+                            <i className="fas fa-history"></i> History
                           </button>
                         )}
                       </div>
@@ -1553,68 +1728,100 @@ const Employee = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* System Information */}
+                <div className="pt-6 border-t border-border-subtle mt-4">
+                  <p className="text-[10px] text-text-placeholder font-medium flex items-center gap-2">
+                    <i className="fas fa-info-circle opacity-50"></i>
+                    Record created on {new Date(viewingEmployee.createdAt).toLocaleString()} • System Reference ID: {viewingEmployee.id}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Last Holder Modal */}
+      {/* Item History Modal */}
       {isLastHolderModalOpen && (
         <div className="fixed inset-0 z-[1002] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
             onClick={() => setIsLastHolderModalOpen(false)}
           ></div>
-          <div className="relative z-[1003] w-full max-w-[400px] bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300 overflow-hidden">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-text-main text-[18px] font-extrabold tracking-tight">
-                  Last Holder Info
-                </h2>
-                <button
-                  onClick={() => setIsLastHolderModalOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-main hover:bg-surface-alt rounded-full transition-colors"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-              </div>
+          <div className="relative z-[1003] w-full max-w-[460px] max-h-[80vh] bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300 overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-border-subtle flex justify-between items-center bg-surface sticky top-0 z-10">
+              <h2 className="text-text-main text-[20px] font-extrabold tracking-tight flex items-center gap-2">
+                <i className="fas fa-history text-accent"></i> Item History
+              </h2>
+              <button
+                onClick={() => setIsLastHolderModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-main hover:bg-surface-alt rounded-full transition-colors"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
 
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
               {isLoadingLastHolder ? (
-                <div className="py-8 flex justify-center">
-                  <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                <div className="py-12 flex flex-col items-center justify-center gap-3">
+                  <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-text-muted text-[14px] font-medium">Fetching timeline...</p>
                 </div>
-              ) : lastHolder?.notFound ? (
-                <div className="text-center py-6 text-text-muted">
-                  <i className="fas fa-history text-3xl mb-3 opacity-50"></i>
-                  <p className="text-[14px]">No previous holder found for Item: <b>{lastHolder.itemNo}</b></p>
+              ) : itemHistory.length === 0 || itemHistory[0]?.notFound ? (
+                <div className="text-center py-12 text-text-muted bg-surface-alt/50 rounded-[20px] border border-dashed border-border-subtle">
+                  <i className="fas fa-ghost text-4xl mb-4 opacity-20"></i>
+                  <p className="text-[15px] font-semibold">No history found</p>
+                  <p className="text-[13px] opacity-70">This item hasn't been logged in the ledger yet.</p>
                 </div>
-              ) : lastHolder?.deleted ? (
-                <div className="text-center py-6 text-text-muted">
-                  <i className="fas fa-user-slash text-3xl mb-3 opacity-50 text-red-400"></i>
-                  <p className="text-[14px]">The last holder (Employee {lastHolder.employeeNo}) was deleted from the system.</p>
+              ) : (
+                <div className="relative flex flex-col gap-8 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border-subtle before:opacity-50">
+                  {itemHistory.map((entry, idx) => {
+                    const isCurrent = !entry.vacated_at;
+                    const startDate = new Date(entry.assigned_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric', day: 'numeric' });
+                    const endDate = entry.vacated_at
+                      ? new Date(entry.vacated_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric', day: 'numeric' })
+                      : "Present";
+
+                    return (
+                      <div key={idx} className="relative pl-12 group">
+                        {/* Timeline Dot */}
+                        <div className={`absolute left-0 top-1 w-10 h-10 rounded-full border-4 border-surface z-10 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 ${isCurrent ? 'bg-accent text-white' : 'bg-surface-alt text-text-muted border-border-subtle'}`}>
+                          <i className={`fas ${isCurrent ? 'fa-user-check' : 'fa-user-clock'} text-[14px]`}></i>
+                        </div>
+
+                        <div className={`p-4 rounded-[18px] border transition-all duration-300 ${isCurrent ? 'bg-accent/5 border-accent/20 shadow-sm' : 'bg-surface border-border-subtle hover:border-accent/30'}`}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <img
+                              src={entry.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(entry.lastName + " " + entry.firstName)}&background=random&color=fff&bold=true`}
+                              className="w-10 h-10 rounded-full object-cover border border-surface shadow-sm"
+                              alt=""
+                            />
+                            <div>
+                              <h4 className="text-text-main font-bold text-[14px] leading-tight">
+                                {entry.deleted ? "Unknown Employee" : `${entry.lastName}, ${entry.firstName}`}
+                              </h4>
+                              <p className="text-text-muted text-[12px] font-medium">
+                                {entry.deleted ? `ID: ${entry.employee_no}` : entry.position}
+                              </p>
+                            </div>
+                            {isCurrent && (
+                              <span className="ml-auto bg-accent text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                                Active
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-text-muted text-[11px] font-bold bg-surface-alt/50 px-3 py-1.5 rounded-lg w-fit">
+                            <i className="far fa-calendar-alt opacity-50"></i>
+                            <span>{startDate} — {endDate}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : lastHolder ? (
-                <div className="flex flex-col items-center text-center bg-surface-alt/50 p-6 rounded-[16px] border border-border-subtle">
-                  <img
-                    src={
-                      lastHolder.photoUrl ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(lastHolder.lastName + " " + lastHolder.firstName)}&background=random&color=fff&bold=true`
-                    }
-                    alt="Profile"
-                    className="w-16 h-16 rounded-full object-cover border-4 border-surface shadow-sm mb-3"
-                  />
-                  <h3 className="text-text-main font-bold text-[16px]">
-                    {lastHolder.lastName}, {lastHolder.firstName}
-                  </h3>
-                  <p className="text-text-muted text-[13px] font-medium mb-1">
-                    {lastHolder.position}
-                  </p>
-                  <span className="text-[11px] font-bold px-2 py-0.5 bg-accent/10 text-accent rounded mt-2">
-                    Vacated: {new Date(lastHolder.vacatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-              ) : null}
+              )}
             </div>
           </div>
         </div>

@@ -4,12 +4,18 @@ import { supabase } from "../lib/supabaseClient";
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [filters, setFilters] = useState({
+    department: "All Departments",
+    category: "All Categories",
+    schoolLevel: "All Levels"
+  });
   const [stats, setStats] = useState({
     total: 0,
     male: 0,
     female: 0,
-    newHires: 0,
-    active: 0,
+    juniorHigh: 0,
+    seniorHigh: 0,
     salaryGrades: [],
     positions: [],
   });
@@ -33,57 +39,92 @@ const Dashboard = () => {
     }
 
     if (employees) {
-      const total = employees.length;
-      const male = employees.filter((e) => e.gender === "Male").length;
-      const female = employees.filter((e) => e.gender === "Female").length;
-
-      // New Hires (Current month)
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const newHires = employees.filter((e) => {
-        const appointmentDate = new Date(e.original_appointment_date);
-        return appointmentDate >= firstDayOfMonth;
-      }).length;
-
-      // Positions Breakdown (Top 5)
-      const positionCounts = {};
-      employees.forEach((e) => {
-        const pos = e.position?.split(" ")[0] || "Unassigned";
-        positionCounts[pos] = (positionCounts[pos] || 0) + 1;
-      });
-      const positions = Object.entries(positionCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([name, count]) => ({ name, count }));
-
-      // Salary Grade Distribution
-      const sgCounts = {};
-      employees.forEach((e) => {
-        const sg = e.salary_grade ? `SG ${e.salary_grade}` : "N/A";
-        sgCounts[sg] = (sgCounts[sg] || 0) + 1;
-      });
-      const salaryGrades = Object.entries(sgCounts)
-        .sort((a, b) => {
-          const numA = parseInt(a[0].replace("SG ", "")) || 0;
-          const numB = parseInt(b[0].replace("SG ", "")) || 0;
-          return numA - numB;
-        })
-        .map(([name, count]) => ({ name, count }));
-
-      setStats({
-        total,
-        male,
-        female,
-        newHires,
-        active: total,
-        salaryGrades,
-        positions,
-      });
-
+      setAllEmployees(employees);
+      calculateStats(employees, filters);
       setRecentActivity(employees.slice(0, 5));
     }
     setIsLoading(false);
   };
+
+  const calculateStats = (employees, currentFilters) => {
+    let filtered = [...employees];
+
+    if (currentFilters.department !== "All Departments") {
+      filtered = filtered.filter(e => e.department === currentFilters.department);
+    }
+    if (currentFilters.category !== "All Categories") {
+      filtered = filtered.filter(e => e.personnel_category === currentFilters.category);
+    }
+    if (currentFilters.schoolLevel !== "All Levels") {
+      filtered = filtered.filter(e => e.school_level === currentFilters.schoolLevel);
+    }
+
+    const total = filtered.length;
+    const male = filtered.filter((e) => e.gender === "Male").length;
+    const female = filtered.filter((e) => e.gender === "Female").length;
+
+    // School Level Breakdown
+    const juniorHigh = filtered.filter((e) => e.school_level === "Junior High").length;
+    const seniorHigh = filtered.filter((e) => e.school_level === "Senior High").length;
+
+    // Positions Breakdown (Top 5)
+    const positionCounts = {};
+    filtered.forEach((e) => {
+      const pos = e.position?.split(" ")[0] || "Unassigned";
+      positionCounts[pos] = (positionCounts[pos] || 0) + 1;
+    });
+    const positions = Object.entries(positionCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    // Salary Grade Distribution
+    const sgCounts = {};
+    filtered.forEach((e) => {
+      const sg = e.salary_grade ? `SG ${e.salary_grade}` : "N/A";
+      sgCounts[sg] = (sgCounts[sg] || 0) + 1;
+    });
+    const salaryGrades = Object.entries(sgCounts)
+      .sort((a, b) => {
+        const numA = parseInt(a[0].replace("SG ", "")) || 0;
+        const numB = parseInt(b[0].replace("SG ", "")) || 0;
+        return numA - numB;
+      })
+      .map(([name, count]) => ({ name, count }));
+
+    setStats({
+      total,
+      male,
+      female,
+      juniorHigh,
+      seniorHigh,
+      salaryGrades,
+      positions,
+    });
+  };
+
+  const handleFilterChange = (key, value) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    calculateStats(allEmployees, newFilters);
+  };
+
+  const uniqueDepartments = [
+    "All Departments",
+    ...new Set(allEmployees.map((e) => e.department).filter(Boolean)),
+  ].sort();
+
+  const uniqueCategories = [
+    "All Categories",
+    "Teaching",
+    "Non-Teaching"
+  ];
+
+  const uniqueLevels = [
+    "All Levels",
+    "Junior High",
+    "Senior High"
+  ];
 
   if (isLoading) {
     return (
@@ -99,39 +140,44 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {
-            label: "Total Personnel",
-            val: stats.total,
-            icon: "fa-users",
-            color: "accent",
-            trend: "+2% from last month",
+            label: "TOTAL PERSONNEL",
+            value: stats.total,
+            icon: "fas fa-users",
+            color: "text-accent",
+            bg: "bg-accent/10",
+            sub: "Total Staff",
           },
           {
-            label: "Male Staff",
-            val: stats.male,
-            icon: "fa-mars",
-            color: "icon-cyan",
-            trend: "Stable",
+            label: "MALE PERSONNEL",
+            value: stats.male,
+            icon: "fas fa-mars",
+            color: "text-icon-cyan",
+            bg: "bg-icon-cyan/10",
+            sub: `${stats.total > 0 ? Math.round((stats.male / stats.total) * 100) : 0}% of Total`,
           },
           {
-            label: "Female Staff",
-            val: stats.female,
-            icon: "fa-venus",
-            color: "icon-pink",
-            trend: "+1% from last month",
+            label: "FEMALE PERSONNEL",
+            value: stats.female,
+            icon: "fas fa-venus",
+            color: "text-icon-pink",
+            bg: "bg-icon-pink/10",
+            sub: `${stats.total > 0 ? Math.round((stats.female / stats.total) * 100) : 0}% of Total`,
           },
           {
-            label: "New Hires",
-            val: stats.newHires,
-            icon: "fa-user-plus",
-            color: "green-500",
-            trend: "Current Month",
+            label: "JUNIOR HIGH",
+            value: stats.juniorHigh,
+            icon: "fas fa-user-graduate",
+            color: "text-blue-400",
+            bg: "bg-blue-500/10",
+            sub: "JHS Personnel",
           },
           {
-            label: "Active Status",
-            val: stats.active,
-            icon: "fa-check-circle",
-            color: "blue-500",
-            trend: "System verified",
+            label: "SENIOR HIGH",
+            value: stats.seniorHigh,
+            icon: "fas fa-chalkboard-teacher",
+            color: "text-purple-400",
+            bg: "bg-purple-500/10",
+            sub: "SHS Personnel",
           },
         ].map((item, idx) => (
           <div
@@ -139,21 +185,19 @@ const Dashboard = () => {
             className="bg-surface border border-border-subtle p-5 rounded-[24px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
           >
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-4 bg-surface-alt text-${item.color} border border-border-subtle transition-transform group-hover:scale-110`}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-4 ${item.bg} ${item.color} border border-border-subtle transition-transform group-hover:scale-110`}
             >
-              <i className={`fas ${item.icon}`}></i>
+              <i className={item.icon}></i>
             </div>
-            <p className="text-text-muted text-xs font-bold uppercase tracking-wider mb-1">
+            <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-1">
               {item.label}
             </p>
-            <h3 className="text-text-main text-2xl font-extrabold mb-2">
-              {item.val}
+            <h3 className="text-text-main text-2xl font-black mb-2">
+              {item.value}
             </h3>
             <div className="flex items-center gap-1.5">
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-alt border border-border-subtle ${item.trend.includes("+") ? "text-green-500" : "text-text-placeholder"}`}
-              >
-                {item.trend}
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-alt border border-border-subtle text-text-placeholder">
+                {item.sub}
               </span>
             </div>
           </div>
@@ -244,9 +288,43 @@ const Dashboard = () => {
                 <i className="fas fa-chart-line"></i> View full analytics
               </Link>
             </div>
-            <select className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm">
-              <option>All Departments</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={filters.category}
+                onChange={(e) => handleFilterChange("category", e.target.value)}
+                className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm"
+              >
+                {uniqueCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filters.schoolLevel}
+                onChange={(e) => handleFilterChange("schoolLevel", e.target.value)}
+                className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm"
+              >
+                {uniqueLevels.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    {lvl}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filters.department}
+                onChange={(e) =>
+                  handleFilterChange("department", e.target.value)
+                }
+                className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm"
+              >
+                {uniqueDepartments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex flex-col gap-5 flex-1">

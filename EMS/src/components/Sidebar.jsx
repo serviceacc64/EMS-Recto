@@ -22,9 +22,9 @@ const Sidebar = () => {
       {/* Branding Section */}
       <div className="px-6 py-8 border-b border-border-subtle/50">
         <div className="flex items-center gap-3">
-          <img 
-            src={logo} 
-            alt="EMS Logo" 
+          <img
+            src={logo}
+            alt="EMS Logo"
             className="w-11 h-11 object-contain p-2 border border-border-subtle rounded-xl bg-surface-alt shadow-sm"
           />
           <div>
@@ -42,16 +42,16 @@ const Sidebar = () => {
         <ul className="list-none flex md:flex-col gap-1.5 m-0 p-0">
           {navLinks.map((link) => (
             <li key={link.to} className="m-0">
-              <NavLink 
-                to={link.to} 
-                className={({isActive}) => `
+              <NavLink
+                to={link.to}
+                className={({ isActive }) => `
                   group flex items-center gap-3.5 px-4 py-3 no-underline rounded-xl transition-all duration-200 font-bold text-[14px]
-                  ${isActive 
-                    ? 'bg-accent/10 text-accent shadow-sm translate-x-1' 
+                  ${isActive
+                    ? 'bg-accent/10 text-accent shadow-sm translate-x-1'
                     : 'text-text-muted hover:bg-surface-hover hover:text-text-main hover:translate-x-1'}
                 `}
               >
-                {({isActive}) => (
+                {({ isActive }) => (
                   <>
                     <i className={`fas ${link.icon} text-[16px] w-[20px] transition-colors duration-200 ${isActive ? 'text-accent' : 'text-text-placeholder group-hover:text-accent'}`}></i>
                     <span className="tracking-tight">{link.label}</span>
@@ -66,16 +66,16 @@ const Sidebar = () => {
       {/* Settings & Session Section (Side-by-Side) */}
       <div className="p-4 border-t border-border-subtle/50 mt-auto bg-surface-alt/20">
         <div className="flex gap-2">
-          <button 
-            onClick={toggleTheme} 
+          <button
+            onClick={toggleTheme}
             className="flex-1 h-11 bg-surface text-text-muted border border-border-subtle rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:bg-surface-hover hover:text-accent active:scale-95"
             title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
             <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'} text-[16px]`}></i>
           </button>
-          
-          <button 
-            onClick={handleLogout} 
+
+          <button
+            onClick={handleLogout}
             className="flex-1 h-11 bg-surface text-text-muted border border-border-subtle rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 active:scale-95"
             title="Logout of System"
           >

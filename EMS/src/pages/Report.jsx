@@ -14,6 +14,9 @@ const Report = () => {
     salaryGrade: "All",
     civilStatus: "All",
     tenure: "All",
+    department: "All",
+    personnelCategory: "All",
+    schoolLevel: "All",
   });
 
   const [selectedPositionDetails, setSelectedPositionDetails] = useState(null);
@@ -33,6 +36,24 @@ const Report = () => {
     const unique = [...new Set(steps)].sort(
       (a, b) => parseInt(a) - parseInt(b),
     );
+    return ["All", ...unique];
+  }, [employees]);
+
+  const uniqueDepartments = useMemo(() => {
+    const depts = employees.map((emp) => emp.department).filter(Boolean);
+    const unique = [...new Set(depts)].sort();
+    return ["All", ...unique];
+  }, [employees]);
+
+  const uniqueLevels = useMemo(() => {
+    const lvls = employees.map((emp) => emp.school_level).filter(Boolean);
+    const unique = [...new Set(lvls)].sort();
+    return ["All", ...unique];
+  }, [employees]);
+
+  const uniqueCategories = useMemo(() => {
+    const cats = employees.map((emp) => emp.personnel_category).filter(Boolean);
+    const unique = [...new Set(cats)].sort();
     return ["All", ...unique];
   }, [employees]);
 
@@ -105,6 +126,30 @@ const Report = () => {
         else if (years <= 20) bucket = "16-20 yrs";
 
         if (bucket !== filters.tenure) return false;
+      }
+
+      // Department Filter
+      if (
+        filters.department !== "All" &&
+        (emp.department || "Unspecified") !== filters.department
+      ) {
+        return false;
+      }
+
+      // Personnel Category Filter
+      if (
+        filters.personnelCategory !== "All" &&
+        (emp.personnel_category || "Unspecified") !== filters.personnelCategory
+      ) {
+        return false;
+      }
+
+      // School Level Filter
+      if (
+        filters.schoolLevel !== "All" &&
+        (emp.school_level || "Unspecified") !== filters.schoolLevel
+      ) {
+        return false;
       }
 
       return true;
@@ -247,6 +292,9 @@ const Report = () => {
       "BASE SALARY",
       "CIVIL STATUS",
       "CONTACT NUMBER",
+      "DEPARTMENT",
+      "PERSONNEL CATEGORY",
+      "SCHOOL LEVEL",
     ];
 
     // 2. Format Dates Helper
@@ -313,6 +361,9 @@ const Report = () => {
       <Cell><Data ss:Type="String">${getSalary(emp.salary_grade, emp.step)}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.civil_status || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.contact_no || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.department || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.personnel_category || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.school_level || ""}</Data></Cell>
     </Row>`;
     });
 
@@ -408,6 +459,66 @@ const Report = () => {
           </select>
         </div>
 
+        {/* Personnel Category Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-text-placeholder uppercase">
+            Category:
+          </span>
+          <select
+            value={filters.personnelCategory}
+            onChange={(e) =>
+              setFilters({ ...filters, personnelCategory: e.target.value })
+            }
+            className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-accent"
+          >
+            {uniqueCategories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Department Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-text-placeholder uppercase">
+            Department:
+          </span>
+          <select
+            value={filters.department}
+            onChange={(e) =>
+              setFilters({ ...filters, department: e.target.value })
+            }
+            className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-accent w-40"
+          >
+            {uniqueDepartments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* School Level Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-text-placeholder uppercase">
+            Level:
+          </span>
+          <select
+            value={filters.schoolLevel}
+            onChange={(e) =>
+              setFilters({ ...filters, schoolLevel: e.target.value })
+            }
+            className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-accent"
+          >
+            {uniqueLevels.map((lvl) => (
+              <option key={lvl} value={lvl}>
+                {lvl}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="ml-auto flex items-center gap-3 text-text-muted">
           {(filters.position !== "All" ||
             filters.salaryGrade !== "All" ||
@@ -434,6 +545,9 @@ const Report = () => {
                 salaryGrade: "All",
                 civilStatus: "All",
                 tenure: "All",
+                department: "All",
+                personnelCategory: "All",
+                schoolLevel: "All",
               })
             }
             className="text-[10px] uppercase font-black text-accent hover:underline px-2 py-1"
@@ -1106,6 +1220,9 @@ const Report = () => {
                         "BASE SALARY",
                         "CIVIL STATUS",
                         "CONTACT",
+                        "DEPARTMENT",
+                        "CATEGORY",
+                        "LEVEL",
                       ].map((h, i) => (
                         <th
                           key={i}
@@ -1198,6 +1315,15 @@ const Report = () => {
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
                           {emp.contact_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.department || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.personnel_category || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.school_level || "---"}
                         </td>
                       </tr>
                     ))}
