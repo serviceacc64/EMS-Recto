@@ -93,6 +93,7 @@ const Header = () => {
     if (path === '/junior-high') return { title: 'Junior Highschool', subtitle: 'Personnel Directory' };
     if (path === '/senior-high') return { title: 'Senior Highschool', subtitle: 'Personnel Directory' };
     if (path === '/report') return { title: 'System Analytics', subtitle: 'Performance & data' };
+    if (path === '/leave-tracker') return { title: 'Leave & Attendance Tracker', subtitle: 'Leave Management' };
     return { title: 'EMS Recto', subtitle: 'Personnel System' };
   };
 

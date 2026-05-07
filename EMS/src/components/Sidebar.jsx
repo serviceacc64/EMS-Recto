@@ -106,6 +106,31 @@ const Sidebar = () => {
         </ul>
       </nav>
 
+      {/* Leave & Attendance Section */}
+      <nav className="p-4 md:px-4 md:pt-2 border-t border-border-subtle/30 mt-0">
+        <div className="mb-4 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">Leave &amp; Attendance</div>
+        <ul className="list-none flex md:flex-col gap-1.5 m-0 p-0">
+          <li className="m-0">
+            <NavLink
+              to="/leave-tracker"
+              className={({ isActive }) => `
+                group flex items-center gap-3.5 px-4 py-3 no-underline rounded-xl transition-all duration-200 font-bold text-[14px]
+                ${isActive
+                  ? 'bg-emerald-500/10 text-emerald-400 shadow-sm translate-x-1'
+                  : 'text-text-muted hover:bg-surface-hover hover:text-text-main hover:translate-x-1'}
+              `}
+            >
+              {({ isActive }) => (
+                <>
+                  <i className={`fas fa-calendar-check text-[16px] w-[20px] transition-colors duration-200 ${isActive ? 'text-emerald-400' : 'text-text-placeholder group-hover:text-emerald-400'}`}></i>
+                  <span className="tracking-tight">Leave Tracker</span>
+                </>
+              )}
+            </NavLink>
+          </li>
+        </ul>
+      </nav>
+
       {/* Settings & Session Section (Side-by-Side) */}
       <div className="p-4 border-t border-border-subtle/50 mt-auto bg-surface-alt/20">
         <div className="flex gap-2">

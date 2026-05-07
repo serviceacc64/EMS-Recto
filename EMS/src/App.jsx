@@ -8,6 +8,7 @@ import Employee from './pages/Employee';
 import JuniorHigh from './pages/JuniorHigh';
 import SeniorHigh from './pages/SeniorHigh';
 import Report from './pages/Report';
+import LeaveTracker from './pages/LeaveTracker';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/junior-high" element={<JuniorHigh />} />
             <Route path="/senior-high" element={<SeniorHigh />} />
             <Route path="/report" element={<Report />} />
+            <Route path="/leave-tracker" element={<LeaveTracker />} />
           </Route>
         </Routes>
       </BrowserRouter>
