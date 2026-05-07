@@ -5,6 +5,26 @@ import { getSalary } from "../lib/salaryData";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
+const DEPARTMENT_OPTIONS = {
+  "Junior High": [
+    "ENGLISH",
+    "FILIPINO",
+    "MATHEMATICS",
+    "SCIENCE",
+    "ARALING PANLIPUNAN",
+    "MAPEH",
+    "ESP",
+    "TLE"
+  ],
+  "Senior High": [
+    "HUMMS",
+    "ARTS & DESIGN",
+    "STEM",
+    "ABM",
+    "TECH"
+  ]
+};
+
 const Employee = () => {
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -299,7 +319,14 @@ const Employee = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: value };
+      // If school level changes, reset department
+      if (name === "schoolLevel") {
+        newData.department = "";
+      }
+      return newData;
+    });
   };
 
   const handleAdd = () => {
@@ -1266,26 +1293,28 @@ const Employee = () => {
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
                           Department <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="text"
+                        <select
                           name="department"
                           value={formData.department}
                           onChange={handleInputChange}
                           required
-                          list="deptList"
-                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
-                          placeholder="e.g., Mathematics"
-                        />
-                        <datalist id="deptList">
-                          <option value="Science" />
-                          <option value="Mathematics" />
-                          <option value="English" />
-                          <option value="Filipino" />
-                          <option value="MAPEH" />
-                          <option value="TVL / TLE" />
-                          <option value="Administrative Office" />
-                          <option value="Finance" />
-                        </datalist>
+                          disabled={!formData.schoolLevel}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">
+                            {!formData.schoolLevel
+                              ? "Select School Level First"
+                              : `Select ${formData.schoolLevel} Department`}
+                          </option>
+                          {formData.schoolLevel && DEPARTMENT_OPTIONS[formData.schoolLevel]?.map((dept) => (
+                            <option key={dept} value={dept}>
+                              {dept}
+                            </option>
+                          ))}
+                          {!DEPARTMENT_OPTIONS[formData.schoolLevel] && formData.department && (
+                            <option value={formData.department}>{formData.department}</option>
+                          )}
+                        </select>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">

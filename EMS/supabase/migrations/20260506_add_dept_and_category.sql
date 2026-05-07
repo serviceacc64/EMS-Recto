@@ -14,7 +14,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='school_level') THEN
         ALTER TABLE public.employees ADD COLUMN school_level TEXT;
     END IF;
-END $$;
+END $$;   
 
 -- 2. (Optional) Set default values for existing records to avoid nulls if desired
 -- UPDATE public.employees SET personnel_category = 'Teaching' WHERE personnel_category IS NULL;

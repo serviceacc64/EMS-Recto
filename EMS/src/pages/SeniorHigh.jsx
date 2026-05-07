@@ -1,9 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
+
+const DEPARTMENT_OPTIONS = {
+  "Junior High": [
+    "ENGLISH",
+    "FILIPINO",
+    "MATHEMATICS",
+    "SCIENCE",
+    "ARALING PANLIPUNAN",
+    "MAPEH",
+    "ESP",
+    "TLE"
+  ],
+  "Senior High": [
+    "HUMMS",
+    "ARTS & DESIGN",
+    "STEM",
+    "ABM",
+    "TECH"
+  ]
+};
 
 const SeniorHigh = () => {
   const [employees, setEmployees] = useState([]);
@@ -23,7 +43,8 @@ const SeniorHigh = () => {
     key: "created_at",
     direction: "desc",
   });
-  const [positionFilter, setPositionFilter] = useState("All Positions");
+  const [departmentFilter, setDepartmentFilter] = useState("All Departments");
+  const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const itemsPerPage = 8;
 
   const [itemHistory, setItemHistory] = useState([]);
@@ -161,7 +182,17 @@ const SeniorHigh = () => {
   }, [searchParams, employees]);
 
   const filteredEmployees = employees.filter((emp) => {
-    if (positionFilter !== "All Positions" && emp.position !== positionFilter) {
+    if (
+      departmentFilter !== "All Departments" &&
+      emp.department?.toUpperCase() !== departmentFilter.toUpperCase()
+    ) {
+      return false;
+    }
+
+    if (
+      categoryFilter !== "All Categories" &&
+      emp.personnelCategory !== categoryFilter
+    ) {
       return false;
     }
 
@@ -188,15 +219,16 @@ const SeniorHigh = () => {
     return searchString.includes(s);
   });
 
-  const uniquePositions = [
-    "All Positions",
-    ...new Set(
-      employees
-        .map((emp) => emp.position)
-        .filter(Boolean)
-        .sort(),
-    ),
-  ];
+  const departmentOptions = useMemo(() => {
+    const officialDepts = DEPARTMENT_OPTIONS["Senior High"] || [];
+    const existingDepts = employees
+      .map((emp) => emp.department)
+      .filter(Boolean);
+
+    const allDepts = [...new Set([...officialDepts, ...existingDepts])].sort();
+
+    return ["All Departments", ...allDepts];
+  }, [employees]);
 
   const romanToInt = (roman) => {
     const map = {
@@ -300,7 +332,14 @@ const SeniorHigh = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: value };
+      // If school level changes, reset department
+      if (name === "schoolLevel") {
+        newData.department = "";
+      }
+      return newData;
+    });
   };
 
   const handleAdd = () => {
@@ -542,37 +581,31 @@ const SeniorHigh = () => {
 
           <div className="flex flex-col sm:flex-row gap-2 self-start sm:self-center">
             <select
-              value={positionFilter}
+              value={departmentFilter}
               onChange={(e) => {
-                setPositionFilter(e.target.value);
+                setDepartmentFilter(e.target.value);
                 setCurrentPage(1);
               }}
               className="bg-surface border border-border-subtle text-text-main text-[14px] font-medium rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50 max-w-[180px] truncate"
             >
-              {uniquePositions.map((pos) => (
-                <option key={pos} value={pos}>
-                  {pos}
+              {departmentOptions.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
                 </option>
               ))}
             </select>
 
             <select
-              value={`${sortConfig.key}-${sortConfig.direction}`}
+              value={categoryFilter}
               onChange={(e) => {
-                const [key, direction] = e.target.value.split("-");
-                setSortConfig({ key, direction });
+                setCategoryFilter(e.target.value);
+                setCurrentPage(1);
               }}
               className="bg-surface border border-border-subtle text-text-main text-[14px] font-medium rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
             >
-              <option value="created_at-desc">Sort by: Default</option>
-              <option value="position-asc">
-                Sort by: Position (Highest First)
-              </option>
-              <option value="position-desc">
-                Sort by: Position (Lowest First)
-              </option>
-              <option value="lastName-asc">Sort by: Name (A-Z)</option>
-              <option value="employeeNo-asc">Sort by: Employee ID</option>
+              <option value="All Categories">All Categories</option>
+              <option value="Teaching">Teaching</option>
+              <option value="Non-Teaching">Non-Teaching</option>
             </select>
           </div>
         </div>
@@ -1274,26 +1307,28 @@ const SeniorHigh = () => {
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
                           Department <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="text"
+                        <select
                           name="department"
                           value={formData.department}
                           onChange={handleInputChange}
                           required
-                          list="deptList"
-                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
-                          placeholder="e.g., Mathematics"
-                        />
-                        <datalist id="deptList">
-                          <option value="Science" />
-                          <option value="Mathematics" />
-                          <option value="English" />
-                          <option value="Filipino" />
-                          <option value="MAPEH" />
-                          <option value="TVL / TLE" />
-                          <option value="Administrative Office" />
-                          <option value="Finance" />
-                        </datalist>
+                          disabled={!formData.schoolLevel}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">
+                            {!formData.schoolLevel
+                              ? "Select School Level First"
+                              : `Select ${formData.schoolLevel} Department`}
+                          </option>
+                          {formData.schoolLevel && DEPARTMENT_OPTIONS[formData.schoolLevel]?.map((dept) => (
+                            <option key={dept} value={dept}>
+                              {dept}
+                            </option>
+                          ))}
+                          {!DEPARTMENT_OPTIONS[formData.schoolLevel] && formData.department && (
+                            <option value={formData.department}>{formData.department}</option>
+                          )}
+                        </select>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
