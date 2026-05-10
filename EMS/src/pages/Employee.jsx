@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
 
@@ -26,6 +27,7 @@ const DEPARTMENT_OPTIONS = {
 };
 
 const Employee = () => {
+  const { showToast } = useNotifications();
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -113,6 +115,8 @@ const Employee = () => {
     department: "",
     personnelCategory: "",
     schoolLevel: "",
+    localLeaveBalance: 0,
+    doLeaveBalance: 0,
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -385,9 +389,10 @@ const Employee = () => {
           .delete()
           .eq("id", empToDelete.id);
         if (error) {
-          alert("Failed to delete: " + error.message);
+          showToast("Failed to delete: " + error.message, "error");
           return;
         }
+        showToast("Employee record deleted successfully", "success");
       }
       const newEmployees = [...employees];
       newEmployees.splice(deletingIndex, 1);
@@ -426,7 +431,7 @@ const Employee = () => {
     ];
     for (let field of required) {
       if (!formData[field] || String(formData[field]).trim() === "") {
-        alert("Please fill in all required fields.");
+        showToast(`Missing required field: ${field}`, "error");
         return;
       }
     }
@@ -436,7 +441,7 @@ const Employee = () => {
         emp.employeeNo === formData.employeeNo && idx !== editingIndex,
     );
     if (isDuplicate) {
-      alert("Employee number already exists.");
+      showToast("Employee number already exists.", "error");
       return;
     }
 
@@ -455,9 +460,10 @@ const Employee = () => {
         .update(dbData)
         .eq("id", formData.id);
       if (error) {
-        alert("Update failed: " + error.message);
+        showToast("Update failed: " + error.message, "error");
         return;
       }
+      showToast("Employee updated successfully", "success");
 
       // TRACK ITEM HISTORY: If item number changed, update ledger
       if (oldItemNo !== formData.itemNo) {
@@ -501,9 +507,10 @@ const Employee = () => {
         .insert([dbData])
         .select();
       if (error) {
-        alert("Insert failed: " + error.message);
+        showToast("Insert failed: " + error.message, "error");
         return;
       }
+      showToast("Employee added successfully", "success");
 
       // Log initial item assignment
       if (formData.itemNo) {
@@ -536,10 +543,10 @@ const Employee = () => {
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 shrink-0">
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto flex-1">
-          <div className="w-full md:w-[400px] flex items-center gap-3 bg-surface border border-border-subtle rounded-[14px] px-4 py-3 shadow-sm focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10 transition-all">
-            <i className="fas fa-search text-text-placeholder text-[16px]"></i>
+      <div className="flex flex-col md:flex-row gap-3 justify-between items-center mb-5 shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-1">
+          <div className="w-full md:w-[360px] flex items-center gap-2.5 bg-surface border border-border-subtle rounded-[12px] px-3.5 py-2.5 shadow-sm focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10 transition-all">
+            <i className="fas fa-search text-text-placeholder text-[14px]"></i>
             <input
               type="text"
               placeholder="Search employee..."
@@ -549,20 +556,20 @@ const Employee = () => {
             />
           </div>
 
-          <div className="flex bg-surface-alt border border-border-subtle p-1 rounded-[12px] shadow-sm self-start sm:self-center">
+          <div className="flex bg-surface-alt border border-border-subtle p-0.5 rounded-[10px] shadow-sm self-start sm:self-center">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-[8px] flex items-center justify-center transition-all ${viewMode === "grid" ? "bg-surface shadow-sm text-accent" : "text-text-muted hover:text-text-main"}`}
+              className={`p-1.5 rounded-[6px] flex items-center justify-center transition-all ${viewMode === "grid" ? "bg-surface shadow-sm text-accent" : "text-text-muted hover:text-text-main"}`}
               title="Grid View"
             >
-              <i className="fas fa-th-large text-[16px]"></i>
+              <i className="fas fa-th-large text-[14px]"></i>
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`p-2 rounded-[8px] flex items-center justify-center transition-all ${viewMode === "table" ? "bg-surface shadow-sm text-accent" : "text-text-muted hover:text-text-main"}`}
+              className={`p-1.5 rounded-[6px] flex items-center justify-center transition-all ${viewMode === "table" ? "bg-surface shadow-sm text-accent" : "text-text-muted hover:text-text-main"}`}
               title="Table View"
             >
-              <i className="fas fa-list text-[16px]"></i>
+              <i className="fas fa-list text-[14px]"></i>
             </button>
           </div>
 
@@ -573,7 +580,7 @@ const Employee = () => {
                 setPositionFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-surface border border-border-subtle text-text-main text-[14px] font-medium rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50 max-w-[180px] truncate"
+              className="bg-surface border border-border-subtle text-text-main text-[13px] font-medium rounded-[10px] px-3 py-2 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50 max-w-[160px] truncate"
             >
               {uniquePositions.map((pos) => (
                 <option key={pos} value={pos}>
@@ -588,7 +595,7 @@ const Employee = () => {
                 const [key, direction] = e.target.value.split("-");
                 setSortConfig({ key, direction });
               }}
-              className="bg-surface border border-border-subtle text-text-main text-[14px] font-medium rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
+              className="bg-surface border border-border-subtle text-text-main text-[13px] font-medium rounded-[10px] px-3 py-2 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
             >
               <option value="created_at-desc">Sort by: Default</option>
               <option value="position-asc">
@@ -606,7 +613,7 @@ const Employee = () => {
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button
             onClick={handleAdd}
-            className="inline-flex justify-center items-center gap-2 bg-accent text-accent-text border border-accent px-5 py-2.5 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-accent-hover hover:scale-105 hover:shadow-md group"
+            className="inline-flex justify-center items-center gap-2 bg-accent text-accent-text border border-accent px-4 py-2 rounded-[10px] cursor-pointer text-[13px] font-semibold transition-all duration-200 shadow-sm hover:bg-accent-hover hover:scale-105 hover:shadow-md group"
           >
             <i className="fas fa-plus"></i> Add Employee
           </button>
@@ -614,12 +621,12 @@ const Employee = () => {
       </div>
 
       {viewMode === "table" ? (
-        <div className="flex-1 w-full min-h-0 overflow-auto border border-border-subtle rounded-[20px] bg-surface shadow-sm mb-4">
-          <table className="w-full min-w-[980px] table-fixed border-collapse text-[14px]">
+        <div className="flex-1 w-full min-h-0 overflow-auto border border-border-subtle rounded-[16px] bg-surface shadow-sm mb-4">
+          <table className="w-full min-w-[980px] table-fixed border-collapse text-[13px]">
             <thead className="bg-surface-alt sticky top-0 z-10 border-b border-border-subtle">
               <tr>
                 <th
-                  className="p-4 md:p-5 w-[14%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-3.5 w-[14%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("employeeNo")}
                 >
                   Employee No.{" "}
@@ -630,7 +637,7 @@ const Employee = () => {
                   )}
                 </th>
                 <th
-                  className="p-4 md:p-5 w-[20%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-3.5 w-[20%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("lastName")}
                 >
                   Name{" "}
@@ -641,7 +648,7 @@ const Employee = () => {
                   )}
                 </th>
                 <th
-                  className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-3.5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("gender")}
                 >
                   Gender{" "}
@@ -652,7 +659,7 @@ const Employee = () => {
                   )}
                 </th>
                 <th
-                  className="p-4 md:p-5 w-[16%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-3.5 w-[16%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("position")}
                 >
                   Position{" "}
@@ -666,7 +673,7 @@ const Employee = () => {
                   )}
                 </th>
                 <th
-                  className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-3.5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("step")}
                 >
                   Step{" "}
@@ -676,16 +683,16 @@ const Employee = () => {
                     ></i>
                   )}
                 </th>
-                <th className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                <th className="p-3.5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap">
                   Salary Grade
                 </th>
-                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                <th className="p-3.5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap">
                   Base Salary
                 </th>
-                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                <th className="p-3.5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap">
                   Contact Number
                 </th>
-                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
+                <th className="p-3.5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[11px] whitespace-nowrap">
                   Actions
                 </th>
               </tr>
@@ -706,60 +713,60 @@ const Employee = () => {
                     key={emp.employeeNo}
                     className={`transition-all duration-200 hover:bg-surface-hover ${i % 2 === 0 ? "bg-surface" : "bg-surface-alt"}`}
                   >
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {emp.employeeNo}
                     </td>
-                    <td className="p-4 md:p-5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {[emp.lastName, emp.firstName, emp.middleName]
                         .filter(Boolean)
                         .join(", ")}
                     </td>
-                    <td className="p-4 md:p-5 text-center align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-center align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold ${emp.gender === "Male" ? "bg-surface-alt text-icon-cyan border border-icon-cyan/30" : emp.gender === "Female" ? "bg-surface-alt text-icon-pink border border-icon-pink/30" : "bg-surface-alt text-text-muted border border-border-subtle"}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${emp.gender === "Male" ? "bg-surface-alt text-icon-cyan border border-icon-cyan/30" : emp.gender === "Female" ? "bg-surface-alt text-icon-pink border border-icon-pink/30" : "bg-surface-alt text-text-muted border border-border-subtle"}`}
                       >
                         {emp.gender}
                       </span>
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {emp.position}
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {emp.step}
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold bg-surface-alt text-accent border border-accent/30">
+                    <td className="p-3.5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-alt text-accent border border-accent/30">
                         {emp.salaryGrade}
                       </span>
                     </td>
-                    <td className="p-4 md:p-5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {getSalary(emp.salaryGrade, emp.step)}
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-3.5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
                       {emp.contactNo}
                     </td>
-                    <td className="p-4 md:p-5 text-center align-middle whitespace-nowrap border-b border-border-subtle">
-                      <div className="flex justify-center gap-2">
+                    <td className="p-3.5 text-center align-middle whitespace-nowrap border-b border-border-subtle">
+                      <div className="flex justify-center gap-1.5">
                         <button
                           onClick={() => handleView(emp)}
-                          className="inline-flex items-center justify-center w-8 h-8 bg-surface-alt text-accent rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/20 border border-border-subtle"
+                          className="inline-flex items-center justify-center w-7 h-7 bg-surface-alt text-accent rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/20 border border-border-subtle"
                           title="View Details"
                         >
-                          <i className="fas fa-eye text-[13px]"></i>
+                          <i className="fas fa-eye text-[12px]"></i>
                         </button>
                         <button
                           onClick={() => handleEdit(emp)}
-                          className="inline-flex items-center justify-center w-8 h-8 bg-surface-alt text-icon-cyan rounded-lg cursor-pointer transition-all duration-200 hover:bg-icon-cyan/20 border border-border-subtle"
+                          className="inline-flex items-center justify-center w-7 h-7 bg-surface-alt text-icon-cyan rounded-lg cursor-pointer transition-all duration-200 hover:bg-icon-cyan/20 border border-border-subtle"
                           title="Edit"
                         >
-                          <i className="fas fa-pen text-[13px]"></i>
+                          <i className="fas fa-pen text-[12px]"></i>
                         </button>
                         <button
                           onClick={() => handleDeletePrompt(emp)}
-                          className="inline-flex items-center justify-center w-8 h-8 bg-surface-alt text-red-500 rounded-lg cursor-pointer transition-all duration-200 hover:bg-red-500/20 hover:text-red-600 border border-border-subtle"
+                          className="inline-flex items-center justify-center w-7 h-7 bg-surface-alt text-red-500 rounded-lg cursor-pointer transition-all duration-200 hover:bg-red-500/20 hover:text-red-600 border border-border-subtle"
                           title="Delete"
                         >
-                          <i className="fas fa-trash text-[13px]"></i>
+                          <i className="fas fa-trash text-[12px]"></i>
                         </button>
                       </div>
                     </td>
@@ -772,12 +779,12 @@ const Employee = () => {
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto mb-4 pr-1">
           {paginatedEmployees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 bg-surface border border-border-subtle rounded-[20px] text-text-muted">
-              <i className="fas fa-folder-open text-[32px] mb-3 opacity-50"></i>
-              <p>No employee records found.</p>
+            <div className="flex flex-col items-center justify-center h-40 bg-surface border border-border-subtle rounded-[16px] text-text-muted">
+              <i className="fas fa-folder-open text-[28px] mb-2 opacity-50"></i>
+              <p className="text-sm">No employee records found.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginatedEmployees.map((emp, i) => {
                 const fullName = [emp.lastName, emp.firstName, emp.middleName]
                   .filter(Boolean)
@@ -790,7 +797,7 @@ const Employee = () => {
                 return (
                   <div
                     key={emp.employeeNo}
-                    className="bg-surface border border-border-subtle rounded-[20px] p-5 shadow-sm hover:shadow-md hover:border-accent/30 transition-all duration-300 group flex flex-col relative"
+                    className="bg-surface border border-border-subtle rounded-[16px] p-4 shadow-sm hover:shadow-md hover:border-accent/30 transition-all duration-300 group flex flex-col relative"
                   >
                     {/* Top Row: Avatar & Options */}
                     <div className="flex justify-between items-start mb-4">
@@ -1406,7 +1413,7 @@ const Employee = () => {
                         </select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
                           Date of Original Appointment{" "}
@@ -1431,6 +1438,41 @@ const Employee = () => {
                           value={formData.lastPromotionDate}
                           onChange={handleInputChange}
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Leave Balances */}
+                    <h3 className="text-text-main text-[13px] mb-4 font-bold border-t border-border-subtle pt-4">
+                      Initial Leave Balances
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          Local Leave Balance
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          name="localLeaveBalance"
+                          value={formData.localLeaveBalance}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                          placeholder="0.000"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          D.O. Leave Balance
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          name="doLeaveBalance"
+                          value={formData.doLeaveBalance}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                          placeholder="0.000"
                         />
                       </div>
                     </div>
@@ -1593,6 +1635,34 @@ const Employee = () => {
                       <span className="text-text-main font-semibold text-[13px]">
                         {viewingEmployee.contactNo}
                       </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Leave Balances */}
+                <div>
+                  <h3 className="text-text-main text-[14px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i className="fas fa-calendar-check text-emerald-500 opacity-80"></i>{" "}
+                    Leave Balances
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-[16px] flex flex-col items-center text-center">
+                      <span className="text-text-placeholder block text-[10px] uppercase tracking-widest font-black mb-1">
+                        Local Leave
+                      </span>
+                      <span className="text-emerald-500 font-black text-[24px] leading-none">
+                        {Number(viewingEmployee.localLeaveBalance || 0)}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-500/60 mt-1 uppercase tracking-tighter">Days Available</span>
+                    </div>
+                    <div className="bg-blue-500/5 border border-blue-500/20 p-4 rounded-[16px] flex flex-col items-center text-center">
+                      <span className="text-text-placeholder block text-[10px] uppercase tracking-widest font-black mb-1">
+                        D.O. Leave
+                      </span>
+                      <span className="text-blue-500 font-black text-[24px] leading-none">
+                        {Number(viewingEmployee.doLeaveBalance || 0)}
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-500/60 mt-1 uppercase tracking-tighter">Days Available</span>
                     </div>
                   </div>
                 </div>

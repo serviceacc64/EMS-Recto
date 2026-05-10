@@ -130,11 +130,79 @@ const LeaveTracker = () => {
   }, [searchTerm, statusFilter, typeFilter]);
 
   // --- Status Update ---
-  const handleStatusUpdate = async (id, newStatus, remarks = "") => {
+  const handleStatusUpdate = async (id, updates) => {
+    const isApproving = updates.status === "Approved";
+    
+    // If approving, we need to handle the balance deduction logic
+    if (isApproving) {
+      const { data: app, error: fetchErr } = await supabase
+        .from("leave_applications")
+        .select("working_days, employee_id")
+        .eq("id", id)
+        .single();
+        
+      if (fetchErr || !app) {
+        console.error("Error fetching application for deduction:", fetchErr);
+        alert("Failed to process deduction: Application not found.");
+        return;
+      }
+
+      // Fetch employee current balances
+      const { data: emp, error: empErr } = await supabase
+        .from("employees")
+        .select("local_leave_balance, do_leave_balance")
+        .eq("id", app.employee_id)
+        .single();
+
+      if (empErr || !emp) {
+        console.error("Error fetching employee balances:", empErr);
+        alert("Failed to process deduction: Employee balances not found.");
+        return;
+      }
+
+      const requested = Number(app.working_days) || 0;
+      let localBal = Number(emp.local_leave_balance) || 0;
+      let doBal = Number(emp.do_leave_balance) || 0;
+
+      // Deduction Logic:
+      // 1. Deduct from Local Leave first
+      const localDeduct = Math.min(requested, localBal);
+      localBal -= localDeduct;
+
+      // 2. Excess from D.O. Leave
+      const remaining = requested - localDeduct;
+      const doDeduct = Math.min(remaining, doBal);
+      doBal -= doDeduct;
+
+      // Update employee balances
+      const { error: updateEmpErr } = await supabase
+        .from("employees")
+        .update({
+          local_leave_balance: localBal,
+          do_leave_balance: doBal
+        })
+        .eq("id", app.employee_id);
+
+      if (updateEmpErr) {
+        console.error("Error updating employee balances:", updateEmpErr);
+        alert("Failed to update employee leave balances: " + updateEmpErr.message);
+        return;
+      }
+
+      // Add the deduction info to the updates object for Section 7.D (Others)
+      if (localDeduct > 0 || doDeduct > 0) {
+        const deductionMsg = `[Auto-Deducted: ${Number(localDeduct)} from Local, ${Number(doDeduct)} from D.O.]`;
+        updates.days_others = updates.days_others 
+          ? `${updates.days_others} ${deductionMsg}`
+          : deductionMsg;
+      }
+    }
+
     const { error } = await supabase
       .from("leave_applications")
-      .update({ status: newStatus, remarks })
+      .update(updates)
       .eq("id", id);
+      
     if (error) {
       console.error("Status update error:", error);
       alert("Failed to update status: " + error.message);

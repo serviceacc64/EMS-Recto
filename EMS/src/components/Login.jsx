@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { showToast } = useNotifications();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -16,7 +18,7 @@ const Login = () => {
 
     // Validation
     if (!email || !password) {
-      alert("Please enter both email and password");
+      showToast("Please enter both email and password", "error");
       return;
     }
 
@@ -30,8 +32,9 @@ const Login = () => {
     setIsLoading(false);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message, "error");
     } else {
+      showToast(`Welcome back, Admin!`, "success");
       navigate("/dashboard");
     }
   };
