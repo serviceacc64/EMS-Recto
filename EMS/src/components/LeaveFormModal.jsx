@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
+import SearchableSelect from "./SearchableSelect";
 
 const LEAVE_TYPES = [
   "Vacation Leave","Mandatory/Forced Leave","Sick Leave","Maternity Leave",
@@ -163,15 +164,12 @@ const LeaveFormModal = ({ isOpen, onClose, onSuccess }) => {
               <SecHeader num="1" label="Employee Information" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <F label="Select Employee" required span2>
-                  <select name="employee_id" value={form.employee_id} onChange={handleEmpChange}
-                    className={inputCls} required>
-                    <option value="" disabled>— Select an employee —</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.last_name}, {emp.first_name} {emp.middle_name || ""} ({emp.employee_no})
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={employees}
+                    value={form.employee_id}
+                    onChange={handleEmpChange}
+                    placeholder="— Search and select an employee —"
+                  />
                 </F>
 
                 {selectedEmp && (

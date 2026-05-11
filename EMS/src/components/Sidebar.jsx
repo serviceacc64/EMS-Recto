@@ -75,6 +75,10 @@ const Sidebar = () => {
     </li>
   );
 
+  const SectionDivider = () => (
+    <div className={`h-px bg-border-subtle opacity-30 transition-all duration-300 ${isCollapsed ? "mx-2" : "mx-3"}`} />
+  );
+
   return (
     <aside
       className={`
@@ -120,7 +124,7 @@ const Sidebar = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-3 space-y-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-3 space-y-4">
         {/* Main Section */}
         <nav>
           {!isCollapsed && (
@@ -134,6 +138,7 @@ const Sidebar = () => {
             ))}
           </ul>
         </nav>
+        <SectionDivider />
 
         {/* Education Section */}
         <nav>
@@ -148,6 +153,7 @@ const Sidebar = () => {
             ))}
           </ul>
         </nav>
+        <SectionDivider />
 
         {/* Leave Section */}
         <nav>
@@ -163,7 +169,7 @@ const Sidebar = () => {
           </ul>
         </nav>
       </div>
-
+      <SectionDivider />
       {/* Bottom Section Card */}
       <div className="p-3 mt-auto">
         {!isCollapsed ? (

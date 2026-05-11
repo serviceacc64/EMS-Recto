@@ -138,7 +138,16 @@ const Header = () => {
                   <div className="p-6 text-center text-text-muted text-xs font-medium">No results found for "{searchTerm}"</div>
                 ) : (
                   searchResults.map((emp, i) => (
-                    <Link key={i} to={`/employee?id=${emp.employee_no}&action=view`} className="flex items-center gap-3 p-3 hover:bg-surface-alt transition-colors group border-b border-border-subtle last:border-0">
+                    <div
+                      key={i}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        navigate(`/employee?id=${emp.employee_no}&action=view`);
+                        setSearchTerm('');
+                        setShowSearchResults(false);
+                      }}
+                      className="flex items-center gap-3 p-3 hover:bg-surface-alt transition-colors group border-b border-border-subtle last:border-0 cursor-pointer"
+                    >
                       <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold shrink-0">{emp.last_name?.[0]}{emp.first_name?.[0]}</div>
                       <div className="overflow-hidden">
                         <div className="flex items-center gap-2">
@@ -158,7 +167,7 @@ const Header = () => {
                         <p className="text-text-placeholder text-[11px] font-medium m-0 truncate">{emp.position}</p>
                       </div>
                       <i className="fas fa-chevron-right text-[10px] text-text-placeholder ml-auto group-hover:translate-x-0.5 transition-transform"></i>
-                    </Link>
+                    </div>
                   ))
                 )}
               </div>

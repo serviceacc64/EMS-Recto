@@ -167,7 +167,7 @@ const SeniorHigh = () => {
     setIsLoading(false);
   };
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const empId = searchParams.get("id");
@@ -1517,7 +1517,10 @@ const SeniorHigh = () => {
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
-            onClick={() => setIsViewModalOpen(false)}
+            onClick={() => {
+              setIsViewModalOpen(false);
+              setSearchParams({});
+            }}
           ></div>
           <div className="relative z-[1000] w-full max-w-[700px] max-h-[90vh] overflow-y-auto bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300">
             <div className="p-6 md:p-8">
@@ -1551,7 +1554,10 @@ const SeniorHigh = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => setIsViewModalOpen(false)}
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    setSearchParams({});
+                  }}
                   className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-surface-alt text-text-muted hover:text-text-main hover:bg-surface-hover rounded-full transition-colors border border-border-subtle"
                 >
                   <i className="fas fa-times"></i>
