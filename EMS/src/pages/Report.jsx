@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getSalary } from "../lib/salaryData";
 
 const Report = () => {
   const [employees, setEmployees] = useState([]);
@@ -13,10 +14,15 @@ const Report = () => {
     salaryGrade: "All",
     civilStatus: "All",
     tenure: "All",
+    department: "All",
+    personnelCategory: "All",
+    schoolLevel: "All",
   });
 
   const [selectedPositionDetails, setSelectedPositionDetails] = useState(null);
   const [selectedIntegrityField, setSelectedIntegrityField] = useState(null);
+  const [selectedEmployeeForQuickView, setSelectedEmployeeForQuickView] =
+    useState(null);
   const [showAllIntegrity, setShowAllIntegrity] = useState(false);
   const [showExportPreview, setShowExportPreview] = useState(false);
 
@@ -32,6 +38,24 @@ const Report = () => {
     const unique = [...new Set(steps)].sort(
       (a, b) => parseInt(a) - parseInt(b),
     );
+    return ["All", ...unique];
+  }, [employees]);
+
+  const uniqueDepartments = useMemo(() => {
+    const depts = employees.map((emp) => emp.department).filter(Boolean);
+    const unique = [...new Set(depts)].sort();
+    return ["All", ...unique];
+  }, [employees]);
+
+  const uniqueLevels = useMemo(() => {
+    const lvls = employees.map((emp) => emp.school_level).filter(Boolean);
+    const unique = [...new Set(lvls)].sort();
+    return ["All", ...unique];
+  }, [employees]);
+
+  const uniqueCategories = useMemo(() => {
+    const cats = employees.map((emp) => emp.personnel_category).filter(Boolean);
+    const unique = [...new Set(cats)].sort();
     return ["All", ...unique];
   }, [employees]);
 
@@ -104,6 +128,30 @@ const Report = () => {
         else if (years <= 20) bucket = "16-20 yrs";
 
         if (bucket !== filters.tenure) return false;
+      }
+
+      // Department Filter
+      if (
+        filters.department !== "All" &&
+        (emp.department || "Unspecified") !== filters.department
+      ) {
+        return false;
+      }
+
+      // Personnel Category Filter
+      if (
+        filters.personnelCategory !== "All" &&
+        (emp.personnel_category || "Unspecified") !== filters.personnelCategory
+      ) {
+        return false;
+      }
+
+      // School Level Filter
+      if (
+        filters.schoolLevel !== "All" &&
+        (emp.school_level || "Unspecified") !== filters.schoolLevel
+      ) {
+        return false;
       }
 
       return true;
@@ -243,8 +291,12 @@ const Report = () => {
       "POSITION",
       "SALARY GRADE",
       "STEP",
+      "BASE SALARY",
       "CIVIL STATUS",
       "CONTACT NUMBER",
+      "DEPARTMENT",
+      "PERSONNEL CATEGORY",
+      "SCHOOL LEVEL",
     ];
 
     // 2. Format Dates Helper
@@ -280,7 +332,7 @@ const Report = () => {
  <Worksheet ss:Name="Workforce Report">
   <Table ss:DefaultRowHeight="25">
     <Column ss:Width="30"/> 
-    <Column ss:Width="100" ss:Span="19"/>
+    <Column ss:Width="100" ss:Span="20"/>
     
     <Row ss:Height="35" ss:StyleID="Header">
       ${headers.map((h) => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join("")}
@@ -308,8 +360,12 @@ const Report = () => {
       <Cell><Data ss:Type="String">${emp.position || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.salary_grade || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.step || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${getSalary(emp.salary_grade, emp.step)}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.civil_status || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.contact_no || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.department || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.personnel_category || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.school_level || ""}</Data></Cell>
     </Row>`;
     });
 
@@ -344,114 +400,200 @@ const Report = () => {
   return (
     <div className="flex flex-col gap-8 animate-[fadeIn_0.4s_ease-out]">
       {/* 1. Local Filter Bar */}
-      <div className="bg-surface border border-border-subtle p-4 rounded-[24px] shadow-sm flex flex-wrap items-center gap-6">
-        <div className="flex items-center gap-3">
-          <i className="fas fa-filter text-accent text-sm"></i>
-          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">
-            Analytics Filters:
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-text-placeholder uppercase">
-            Position:
-          </span>
-          <select
-            value={filters.position}
-            onChange={(e) =>
-              setFilters({ ...filters, position: e.target.value })
-            }
-            className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-accent w-48"
-          >
-            {uniquePositions.map((pos) => (
-              <option key={pos} value={pos}>
-                {pos}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Step Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-text-placeholder uppercase">
-            Salary Step:
-          </span>
-          <select
-            value={filters.step}
-            onChange={(e) => setFilters({ ...filters, step: e.target.value })}
-            className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-accent"
-          >
-            {uniqueSteps.map((st) => (
-              <option key={st} value={st}>
-                {st}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Gender Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-text-placeholder uppercase">
-            Gender:
-          </span>
-          <select
-            value={filters.gender}
-            onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-            className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-accent"
-          >
-            <option>All</option>
-            <option>Male</option>
-            <option>Female</option>
-          </select>
-        </div>
-
-        <div className="ml-auto flex items-center gap-3 text-text-muted">
-          {(filters.position !== "All" ||
-            filters.salaryGrade !== "All" ||
-            filters.civilStatus !== "All" ||
-            filters.tenure !== "All" ||
-            filters.step !== "All" ||
-            filters.gender !== "All") && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full animate-[fadeIn_0.3s_ease-out]">
-              <span className="text-[10px] font-black text-accent uppercase tracking-widest">
-                Filters Active
-              </span>
-              <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
+      <div className="bg-surface border border-border-subtle p-6 rounded-[28px] shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
+              <i className="fas fa-filter text-sm"></i>
             </div>
-          )}
-          <span className="text-xs font-bold text-text-main">
-            {filteredData.length} records shown
-          </span>
-          <button
-            onClick={() =>
-              setFilters({
-                position: "All",
-                step: "All",
-                gender: "All",
-                salaryGrade: "All",
-                civilStatus: "All",
-                tenure: "All",
-              })
-            }
-            className="text-[10px] uppercase font-black text-accent hover:underline px-2 py-1"
-          >
-            Reset All
-          </button>
+            <div>
+              <h4 className="text-text-main font-bold text-sm uppercase tracking-wider m-0">
+                Analytics Filters
+              </h4>
+              <p className="text-text-muted text-[10px] font-medium m-0">
+                Refine workforce insights by selecting criteria below
+              </p>
+            </div>
+          </div>
 
-          <div className="w-px h-4 bg-border-subtle mx-1"></div>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <span className="text-text-main text-sm font-black">
+                {filteredData.length}
+              </span>
+              <span className="text-[9px] text-text-placeholder font-bold uppercase tracking-widest leading-none">
+                Records Shown
+              </span>
+            </div>
 
-          <button
-            onClick={() => setShowExportPreview(true)}
-            disabled={!filteredData.length}
-            className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-subtle hover:border-accent/40 rounded-xl transition-all group active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Preview and Export to Excel"
-          >
-            <i className="fas fa-file-excel text-accent text-xs group-hover:rotate-12 transition-transform"></i>
-            <span className="text-[10px] font-black text-text-main uppercase tracking-widest">
-              Export
-            </span>
-          </button>
+            <div className="w-px h-8 bg-border-subtle"></div>
+
+            <button
+              onClick={() =>
+                setFilters({
+                  position: "All",
+                  step: "All",
+                  gender: "All",
+                  salaryGrade: "All",
+                  civilStatus: "All",
+                  tenure: "All",
+                  department: "All",
+                  personnelCategory: "All",
+                  schoolLevel: "All",
+                })
+              }
+              className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-accent hover:bg-accent/5 rounded-xl transition-all"
+            >
+              Reset All
+            </button>
+
+            <button
+              onClick={() => setShowExportPreview(true)}
+              disabled={!filteredData.length}
+              className="flex items-center gap-2.5 px-5 py-2.5 bg-accent text-accent-text rounded-xl shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              <i className="fas fa-file-excel group-hover:rotate-12 transition-transform"></i>
+              <span className="text-[11px] font-black uppercase tracking-widest">
+                Export Data
+              </span>
+            </button>
+          </div>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+          {/* Position Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
+              Position
+            </label>
+            <select
+              value={filters.position}
+              onChange={(e) =>
+                setFilters({ ...filters, position: e.target.value })
+              }
+              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
+            >
+              {uniquePositions.map((pos) => (
+                <option key={pos} value={pos}>
+                  {pos}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Step Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
+              Salary Step
+            </label>
+            <select
+              value={filters.step}
+              onChange={(e) => setFilters({ ...filters, step: e.target.value })}
+              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
+            >
+              {uniqueSteps.map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Gender Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
+              Gender
+            </label>
+            <select
+              value={filters.gender}
+              onChange={(e) =>
+                setFilters({ ...filters, gender: e.target.value })
+              }
+              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
+            >
+              <option>All</option>
+              <option>Male</option>
+              <option>Female</option>
+            </select>
+          </div>
+
+          {/* Personnel Category Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
+              Category
+            </label>
+            <select
+              value={filters.personnelCategory}
+              onChange={(e) =>
+                setFilters({ ...filters, personnelCategory: e.target.value })
+              }
+              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
+            >
+              {uniqueCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Department Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
+              Department
+            </label>
+            <select
+              value={filters.department}
+              onChange={(e) =>
+                setFilters({ ...filters, department: e.target.value })
+              }
+              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
+            >
+              {uniqueDepartments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* School Level Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
+              School Level
+            </label>
+            <select
+              value={filters.schoolLevel}
+              onChange={(e) =>
+                setFilters({ ...filters, schoolLevel: e.target.value })
+              }
+              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
+            >
+              {uniqueLevels.map((lvl) => (
+                <option key={lvl} value={lvl}>
+                  {lvl}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {(filters.position !== "All" ||
+          filters.salaryGrade !== "All" ||
+          filters.civilStatus !== "All" ||
+          filters.tenure !== "All" ||
+          filters.step !== "All" ||
+          filters.gender !== "All" ||
+          filters.department !== "All" ||
+          filters.personnelCategory !== "All" ||
+          filters.schoolLevel !== "All") && (
+          <div className="mt-4 flex items-center gap-2 animate-[fadeIn_0.3s_ease-out]">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
+            <span className="text-[10px] font-black text-accent uppercase tracking-widest">
+              Filters Active
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 2. Analytics Bento Grid */}
@@ -939,24 +1081,22 @@ const Report = () => {
         </div>
       )}
 
-      {/* 3. Detail Modal (Unified for Positions & Integrity) */}
-      {(selectedPositionDetails || selectedIntegrityField) && metrics && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* 4. Drill-down Modal (Position/Integrity) */}
+      {(selectedPositionDetails || selectedIntegrityField) && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.3s_ease-out]"
             onClick={() => {
               setSelectedPositionDetails(null);
               setSelectedIntegrityField(null);
             }}
           ></div>
-          <div className="bg-surface border border-border-subtle w-full max-w-lg rounded-[32px] shadow-2xl z-[101] overflow-hidden animate-[slideIn_0.3s_ease-out]">
+          <div className="bg-surface border border-border-subtle w-full max-w-xl rounded-[32px] shadow-2xl z-[201] overflow-hidden flex flex-col animate-[slideIn_0.4s_ease-out]">
             <div className="p-6 border-b border-border-subtle bg-surface-alt flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedIntegrityField ? "bg-red-500/10 text-red-500" : "bg-accent/10 text-accent"}`}
-                >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-accent text-accent-text flex items-center justify-center text-xl shadow-lg shadow-accent/20">
                   <i
-                    className={`fas ${selectedIntegrityField ? "fa-exclamation-triangle" : "fa-briefcase"}`}
+                    className={`fas ${selectedIntegrityField ? "fa-clipboard-check" : "fa-briefcase"}`}
                   ></i>
                 </div>
                 <div>
@@ -995,9 +1135,19 @@ const Report = () => {
                   className="bg-surface-alt/50 border border-border-subtle p-4 rounded-2xl flex items-center justify-between group hover:border-accent/30 transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface border border-border-subtle flex items-center justify-center text-xs font-bold text-accent shadow-sm">
-                      {emp.last_name?.[0]}
-                      {emp.first_name?.[0]}
+                    <div className="w-10 h-10 rounded-full bg-surface border border-border-subtle flex items-center justify-center text-xs font-bold text-accent shadow-sm overflow-hidden">
+                      {emp.photo_url ? (
+                        <img
+                          src={emp.photo_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>
+                          {emp.last_name?.[0]}
+                          {emp.first_name?.[0]}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -1015,13 +1165,13 @@ const Report = () => {
                       </p>
                     </div>
                   </div>
-                  <a
-                    href={`/employee?id=${emp.employee_no}&action=view`}
+                  <button
+                    onClick={() => setSelectedEmployeeForQuickView(emp)}
                     className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-accent border border-border-subtle hover:bg-accent hover:text-accent-text transition-all shadow-sm"
-                    title="View Profile"
+                    title="Quick View Details"
                   >
                     <i className="fas fa-arrow-right text-xs"></i>
-                  </a>
+                  </button>
                 </div>
               ))}
             </div>
@@ -1036,6 +1186,155 @@ const Report = () => {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.5 Quick View Profile Modal */}
+      {selectedEmployeeForQuickView && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-md animate-[fadeIn_0.3s_ease-out]"
+            onClick={() => setSelectedEmployeeForQuickView(null)}
+          ></div>
+          <div className="bg-surface border border-border-subtle w-full max-w-2xl rounded-[32px] shadow-2xl z-[301] overflow-hidden flex flex-col animate-[slideIn_0.4s_ease-out]">
+            {/* Modal Header/Branding */}
+            <div className="relative h-24 bg-gradient-to-r from-accent to-accent-hover">
+              <button
+                onClick={() => setSelectedEmployeeForQuickView(null)}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-all z-10"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+              <div className="absolute -bottom-12 left-8 p-1 bg-surface border-4 border-surface rounded-[28px] shadow-xl">
+                <div className="w-24 h-24 rounded-[24px] bg-surface-alt overflow-hidden flex items-center justify-center text-2xl font-black text-accent border border-border-subtle">
+                  {selectedEmployeeForQuickView.photo_url ? (
+                    <img
+                      src={selectedEmployeeForQuickView.photo_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {selectedEmployeeForQuickView.last_name?.[0]}
+                      {selectedEmployeeForQuickView.first_name?.[0]}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-16 px-8 pb-8">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-text-main m-0 leading-tight">
+                    {selectedEmployeeForQuickView.last_name},{" "}
+                    {selectedEmployeeForQuickView.first_name}{" "}
+                    {selectedEmployeeForQuickView.middle_name}
+                  </h2>
+                  <p className="text-accent font-bold uppercase tracking-widest text-xs mt-1">
+                    {selectedEmployeeForQuickView.position} •{" "}
+                    {selectedEmployeeForQuickView.employee_no}
+                  </p>
+                </div>
+                <div className="px-4 py-2 bg-surface-alt border border-border-subtle rounded-xl text-center">
+                  <p className="text-[10px] font-bold text-text-placeholder uppercase m-0">
+                    Salary Grade
+                  </p>
+                  <p className="text-text-main font-black m-0 leading-tight">
+                    SG {selectedEmployeeForQuickView.salary_grade}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-surface-alt/50 border border-border-subtle rounded-2xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <i className="fas fa-id-card text-accent text-xs"></i>
+                    <span className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">
+                      Job Details
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-[11px] font-bold text-text-muted">
+                        Year Level:
+                      </span>
+                      <span className="text-[11px] font-black text-text-main">
+                        {selectedEmployeeForQuickView.school_level || "---"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[11px] font-bold text-text-muted">
+                        Department:
+                      </span>
+                      <span className="text-[11px] font-black text-text-main">
+                        {selectedEmployeeForQuickView.department || "---"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[11px] font-bold text-text-muted">
+                        Category:
+                      </span>
+                      <span className="text-[11px] font-black text-text-main">
+                        {selectedEmployeeForQuickView.personnel_category ||
+                          "---"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-surface-alt/50 border border-border-subtle rounded-2xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <i className="fas fa-user-tag text-accent text-xs"></i>
+                    <span className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">
+                      Personal Info
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-[11px] font-bold text-text-muted">
+                        Gender:
+                      </span>
+                      <span className="text-[11px] font-black text-text-main">
+                        {selectedEmployeeForQuickView.gender}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[11px] font-bold text-text-muted">
+                        Civil Status:
+                      </span>
+                      <span className="text-[11px] font-black text-text-main">
+                        {selectedEmployeeForQuickView.civil_status || "---"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[11px] font-bold text-text-muted">
+                        Contact:
+                      </span>
+                      <span className="text-[11px] font-black text-text-main">
+                        {selectedEmployeeForQuickView.contact_no || "---"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-4">
+                <button
+                  onClick={() => setSelectedEmployeeForQuickView(null)}
+                  className="flex-1 py-3 bg-surface-alt border border-border-subtle text-text-main font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-surface transition-all active:scale-95"
+                >
+                  Close Profile
+                </button>
+                <a
+                  href={`/employee?id=${selectedEmployeeForQuickView.employee_no}&action=view`}
+                  className="flex-1 py-3 bg-accent text-accent-text font-black text-[11px] uppercase tracking-widest rounded-xl text-center shadow-lg shadow-accent/20 hover:scale-105 transition-all active:scale-95"
+                >
+                  Go to Management
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -1100,8 +1399,12 @@ const Report = () => {
                         "POSITION",
                         "SG",
                         "STEP",
+                        "BASE SALARY",
                         "CIVIL STATUS",
                         "CONTACT",
+                        "DEPARTMENT",
+                        "CATEGORY",
+                        "LEVEL",
                       ].map((h, i) => (
                         <th
                           key={i}
@@ -1186,11 +1489,23 @@ const Report = () => {
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
                           {emp.step}
                         </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-bold text-green-500">
+                          {getSalary(emp.salary_grade, emp.step)}
+                        </td>
                         <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
                           {emp.civil_status}
                         </td>
                         <td className="border-b border-r border-border-subtle p-4 text-[10px] font-mono text-text-muted">
                           {emp.contact_no || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.department || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.personnel_category || "---"}
+                        </td>
+                        <td className="border-b border-r border-border-subtle p-4 text-xs font-medium text-text-main">
+                          {emp.school_level || "---"}
                         </td>
                       </tr>
                     ))}

@@ -43,7 +43,7 @@ const Layout = () => {
     <div className="flex flex-col md:flex-row min-h-screen md:h-screen h-auto bg-transparent text-text-main overflow-auto md:overflow-hidden relative transition-colors duration-300">
       <Sidebar />
       <main className="flex-1 min-w-0 md:h-screen h-auto flex flex-col overflow-visible md:overflow-hidden relative">
-        <div ref={scrollContainerRef} className="flex-1 min-h-0 p-6 md:p-8 bg-transparent overflow-auto">
+        <div ref={scrollContainerRef} className="flex-1 min-h-0 p-4 md:p-6 bg-transparent overflow-auto">
           <Header />
           <Outlet />
         </div>
