@@ -2,4 +2,3 @@
 ALTER TABLE employees 
 ADD COLUMN IF NOT EXISTS edu_email TEXT,
 ADD COLUMN IF NOT EXISTS personal_email TEXT;
- 

@@ -26,7 +26,9 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      if (!currentUser) {
+      if (currentUser) {
+        setLoading(true); // Ensure we wait for profile
+      } else {
         setProfile(null);
         setLoading(false);
       }
@@ -63,6 +65,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error("💥 Profile catch error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
