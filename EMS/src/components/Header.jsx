@@ -88,12 +88,13 @@ const Header = () => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return { title: 'System Admin', subtitle: 'Welcome back,' };
-    if (path === '/employee') return { title: 'Employee Management', subtitle: 'Manage your workforce' };
-    if (path === '/junior-high') return { title: 'Junior Highschool', subtitle: 'Personnel Directory' };
-    if (path === '/senior-high') return { title: 'Senior Highschool', subtitle: 'Personnel Directory' };
-    if (path === '/report') return { title: 'System Analytics', subtitle: 'Performance & data' };
-    if (path === '/leave-tracker') return { title: 'Leave & Attendance Tracker', subtitle: 'Leave Management' };
+    if (path === '/dashboard') return { title: 'Dashboard', subtitle: 'System Admin' };
+    if (path === '/employee') return { title: 'Personnel', subtitle: 'Management' };
+    if (path === '/junior-high') return { title: 'Junior High', subtitle: 'Directory' };
+    if (path === '/senior-high') return { title: 'Senior High', subtitle: 'Directory' };
+    if (path === '/report') return { title: 'Analytics', subtitle: 'System' };
+    if (path === '/leave-tracker') return { title: 'Leave Tracker', subtitle: 'Operations' };
+    if (path === '/audit-logs') return { title: 'Audit Logs', subtitle: 'Administration' };
     return { title: 'EMS Recto', subtitle: 'Personnel System' };
   };
 
@@ -108,9 +109,15 @@ const Header = () => {
           </div>
           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-[3px] border-base rounded-full"></div>
         </div>
-        <div>
-          <p className="text-text-muted text-[12px] font-semibold m-0">{pageInfo.subtitle}</p>
-          <h1 className="text-text-main text-xl md:text-2xl font-extrabold tracking-tight m-0 leading-tight">{pageInfo.title}</h1>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60 mb-0.5">
+            <span>{pageInfo.subtitle}</span>
+            <span className="w-1 h-1 rounded-full bg-border-subtle"></span>
+            <span>Portal</span>
+          </div>
+          <h1 className="text-text-main text-xl md:text-2xl font-black tracking-tight m-0 leading-tight">
+            {pageInfo.title}
+          </h1>
         </div>
       </div>
 

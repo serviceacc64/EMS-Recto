@@ -3,14 +3,17 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useNotifications } from "../context/NotificationContext";
 import logo from "../assets/rectologo.png";
+import { useAuth } from "../context/AuthContext";
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const { showToast } = useNotifications();
   const { isDarkMode, toggleTheme } = useTheme();
+  const { signOut, isSuperAdmin } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     showToast("Logged out successfully", "info");
     navigate("/");
   };
@@ -133,41 +136,63 @@ const Sidebar = () => {
             </div>
           )}
           <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
-            {mainLinks.map((link) => (
-              <NavItem key={link.to} {...link} />
-            ))}
+            <NavItem to="/dashboard" label="Dashboard" icon="fa-house" />
+            <NavItem to="/employee" label="Personnel" icon="fa-id-card" />
+            {isSuperAdmin && <NavItem to="/report" label="Analytics" icon="fa-chart-pie" />}
           </ul>
         </nav>
         <SectionDivider />
 
         {/* Education Section */}
-        <nav>
-          {!isCollapsed && (
-            <div className="mb-3 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">
-              Education
-            </div>
-          )}
-          <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
-            {educationLinks.map((link) => (
-              <NavItem key={link.to} {...link} />
-            ))}
-          </ul>
-        </nav>
-        <SectionDivider />
+        {isSuperAdmin && (
+          <>
+            <nav>
+              {!isCollapsed && (
+                <div className="mb-3 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">
+                  Education
+                </div>
+              )}
+              <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
+                {educationLinks.map((link) => (
+                  <NavItem key={link.to} {...link} />
+                ))}
+              </ul>
+            </nav>
+            <SectionDivider />
+          </>
+        )}
 
         {/* Leave Section */}
-        <nav>
-          {!isCollapsed && (
-            <div className="mb-3 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">
-              Operations
-            </div>
-          )}
-          <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
-            {leaveLinks.map((link) => (
-              <NavItem key={link.to} {...link} />
-            ))}
-          </ul>
-        </nav>
+        {isSuperAdmin && (
+          <nav>
+            {!isCollapsed && (
+              <div className="mb-3 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">
+                Operations
+              </div>
+            )}
+            <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
+              {leaveLinks.map((link) => (
+                <NavItem key={link.to} {...link} />
+              ))}
+            </ul>
+          </nav>
+        )}
+
+        {isSuperAdmin && (
+          <>
+            <SectionDivider />
+            <nav>
+              {!isCollapsed && (
+                <div className="mb-3 px-3 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">
+                  Administration
+                </div>
+              )}
+              <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
+                <NavItem to="/audit-logs" label="Audit Logs" icon="fa-shield-halved" />
+              </ul>
+            </nav>
+          </>
+        )}
       </div>
       <SectionDivider />
       {/* Bottom Section Card */}

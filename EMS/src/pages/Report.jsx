@@ -4,6 +4,7 @@ import { getSalary } from "../lib/salaryData";
 
 const Report = () => {
   const [employees, setEmployees] = useState([]);
+  const [leaves, setLeaves] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters State
@@ -74,6 +75,12 @@ const Report = () => {
       console.error("Error fetching analytics data:", error);
     } else {
       setEmployees(data || []);
+      
+      // Fetch Leave Data
+      const { data: leaveData } = await supabase
+        .from("leave_applications")
+        .select("*, employees(department, position, school_level)");
+      setLeaves(leaveData || []);
     }
     setIsLoading(false);
   };
@@ -188,8 +195,7 @@ const Report = () => {
     ];
     const integrityScores = {};
     integrityFields.forEach((f) => {
-      const key = f.replace("_url", "").replace("_no", "").replace("_date", "");
-      integrityScores[key] = 0;
+      integrityScores[f] = 0;
     });
 
     // C. Position Distribution
@@ -214,11 +220,7 @@ const Report = () => {
       // Integrity
       integrityFields.forEach((field) => {
         if (emp[field]) {
-          const key = field
-            .replace("_url", "")
-            .replace("_no", "")
-            .replace("_date", "");
-          integrityScores[key]++;
+          integrityScores[field]++;
         }
       });
 
@@ -264,8 +266,92 @@ const Report = () => {
         })
         .map(([name, count]) => ({ name, count })),
       total: filteredData.length,
+
+      // --- New Advanced Metrics ---
+      
+      // F. Salary Forecasting
+      salary: (() => {
+        let totalMonthly = 0;
+        const brackets = { "Below 30k": 0, "30k-40k": 0, "40k-50k": 0, "50k+": 0 };
+        
+        filteredData.forEach(emp => {
+          const salaryStr = getSalary(emp.salary_grade, emp.step) || "0";
+          const salaryNum = parseInt(salaryStr.replace(/[^\d]/g, "")) || 0;
+          totalMonthly += salaryNum;
+          
+          if (salaryNum < 30000) brackets["Below 30k"]++;
+          else if (salaryNum < 40000) brackets["30k-40k"]++;
+          else if (salaryNum < 50000) brackets["40k-50k"]++;
+          else brackets["50k+"]++;
+        });
+        
+        return {
+          totalMonthly,
+          brackets: Object.entries(brackets).map(([name, count]) => ({ name, count }))
+        };
+      })(),
+
+      // G. Leave Utilization
+      leave: (() => {
+        const filteredEmpIds = new Set(filteredData.map(e => e.id));
+        const filteredLeaves = leaves.filter(l => filteredEmpIds.has(l.employee_id));
+        
+        const typeCounts = {};
+        const monthlyTrends = Array(12).fill(0);
+        
+        filteredLeaves.forEach(l => {
+          typeCounts[l.type_of_leave] = (typeCounts[l.type_of_leave] || 0) + 1;
+          const month = new Date(l.date_of_filing).getMonth();
+          monthlyTrends[month]++;
+        });
+        
+        return {
+          total: filteredLeaves.length,
+          types: Object.entries(typeCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name, count]) => ({ name, count })),
+          trends: monthlyTrends.map((count, i) => ({ 
+            month: new Date(0, i).toLocaleString('default', { month: 'short' }), 
+            count 
+          }))
+        };
+      })(),
+
+      // H. Career Velocity
+      career: (() => {
+        let totalVelocity = 0;
+        let countWithPromotion = 0;
+        let stagnantCount = 0;
+        const now = new Date();
+
+        filteredData.forEach(emp => {
+          if (emp.original_appointment_date && emp.last_promotion_date) {
+            const start = new Date(emp.original_appointment_date);
+            const last = new Date(emp.last_promotion_date);
+            const years = (last - start) / (1000 * 60 * 60 * 24 * 365.25);
+            if (years > 0) {
+              totalVelocity += years;
+              countWithPromotion++;
+            }
+          }
+          
+          // Stagnancy check (no promotion in 5 years)
+          const baseDate = emp.last_promotion_date || emp.original_appointment_date;
+          if (baseDate) {
+            const yearsSince = (now - new Date(baseDate)) / (1000 * 60 * 60 * 24 * 365.25);
+            if (yearsSince >= 5) stagnantCount++;
+          }
+        });
+
+        return {
+          avgYearsToPromote: countWithPromotion > 0 ? (totalVelocity / countWithPromotion).toFixed(1) : "N/A",
+          stagnantCount,
+          stagnantPercent: filteredData.length > 0 ? Math.round((stagnantCount / filteredData.length) * 100) : 0
+        };
+      })()
     };
-  }, [filteredData]);
+  }, [filteredData, leaves]);
 
   // 3. Export to Styled Excel Logic (SpreadsheetML)
   const downloadExcel = () => {
@@ -389,698 +475,307 @@ const Report = () => {
     document.body.removeChild(link);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[400px]">
-        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+  const SkeletonAnalytics = () => (
+    <div className="flex flex-col gap-8 animate-pulse">
+      {/* Filters Skeleton */}
+      <div className="bg-surface border border-border-subtle p-6 rounded-[32px] h-[160px]"></div>
+      
+      {/* Stats Grid Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {Array(4).fill(0).map((_, i) => (
+          <div key={i} className="bg-surface border border-border-subtle p-6 rounded-[28px] h-[140px]"></div>
+        ))}
       </div>
-    );
-  }
+
+      {/* Main Content Grid Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-surface border border-border-subtle p-8 rounded-[32px] h-[400px]"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-surface border border-border-subtle p-6 rounded-[28px] h-[300px]"></div>
+            <div className="bg-surface border border-border-subtle p-6 rounded-[28px] h-[300px]"></div>
+          </div>
+        </div>
+        <div className="bg-surface border border-border-subtle p-8 rounded-[32px] h-full min-h-[600px]"></div>
+      </div>
+    </div>
+  );
+
+  if (isLoading) return <SkeletonAnalytics />;
 
   return (
-    <div className="flex flex-col gap-8 animate-[fadeIn_0.4s_ease-out]">
-      {/* 1. Local Filter Bar */}
-      <div className="bg-surface border border-border-subtle p-6 rounded-[28px] shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-              <i className="fas fa-filter text-sm"></i>
+    <div className="flex flex-col gap-8 animate-[fadeIn_0.5s_ease-out]">
+      {/* 1. Premium Filter Bar */}
+      <div className="bg-surface/80 backdrop-blur-xl border border-border-subtle p-8 rounded-[32px] shadow-sm glass-panel overflow-hidden relative group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:bg-accent/10 transition-colors duration-700"></div>
+        
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent border border-accent/10">
+              <i className="fas fa-chart-pie text-sm"></i>
             </div>
             <div>
-              <h4 className="text-text-main font-bold text-sm uppercase tracking-wider m-0">
-                Analytics Filters
-              </h4>
-              <p className="text-text-muted text-[10px] font-medium m-0">
-                Refine workforce insights by selecting criteria below
-              </p>
+              <h2 className="text-text-main font-black text-lg tracking-tight m-0 uppercase">Analytics Engine</h2>
+              <p className="text-text-placeholder text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-60">Intelligence Hub</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end">
-              <span className="text-text-main text-sm font-black">
-                {filteredData.length}
-              </span>
-              <span className="text-[9px] text-text-placeholder font-bold uppercase tracking-widest leading-none">
-                Records Shown
-              </span>
+          <div className="flex flex-wrap items-center gap-4">
+             <div className="flex items-center gap-6 px-6 py-3 bg-surface-alt/50 border border-border-subtle rounded-2xl">
+              <div className="text-center">
+                <div className="text-text-main font-black text-lg leading-none">{filteredData.length}</div>
+                <div className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Sample Size</div>
+              </div>
+              <div className="w-px h-8 bg-border-subtle"></div>
+              <div className="text-center">
+                <div className="text-accent font-black text-lg leading-none">{metrics?.integrity.overall}%</div>
+                <div className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Data Health</div>
+              </div>
             </div>
 
-            <div className="w-px h-8 bg-border-subtle"></div>
-
-            <button
-              onClick={() =>
-                setFilters({
-                  position: "All",
-                  step: "All",
-                  gender: "All",
-                  salaryGrade: "All",
-                  civilStatus: "All",
-                  tenure: "All",
-                  department: "All",
-                  personnelCategory: "All",
-                  schoolLevel: "All",
-                })
-              }
-              className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-accent hover:bg-accent/5 rounded-xl transition-all"
-            >
-              Reset All
-            </button>
-
-            <button
-              onClick={() => setShowExportPreview(true)}
-              disabled={!filteredData.length}
-              className="flex items-center gap-2.5 px-5 py-2.5 bg-accent text-accent-text rounded-xl shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              <i className="fas fa-file-excel group-hover:rotate-12 transition-transform"></i>
-              <span className="text-[11px] font-black uppercase tracking-widest">
-                Export Data
-              </span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setFilters({
+                  position: "All", step: "All", gender: "All", salaryGrade: "All",
+                  civilStatus: "All", tenure: "All", department: "All",
+                  personnelCategory: "All", schoolLevel: "All",
+                })}
+                className="w-12 h-12 rounded-2xl border border-border-subtle bg-surface-alt flex items-center justify-center text-text-muted hover:text-accent hover:border-accent/30 transition-all group/reset"
+                title="Reset Filters"
+              >
+                <i className="fas fa-undo-alt text-sm group-hover:-rotate-45 transition-transform"></i>
+              </button>
+              
+              <button
+                onClick={() => setShowExportPreview(true)}
+                disabled={!filteredData.length}
+                className="flex items-center gap-3 px-6 py-3.5 bg-accent text-accent-text rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 border border-accent/20"
+              >
+                <i className="fas fa-file-export"></i>
+                <span>Generate Insight Report</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
-          {/* Position Filter */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
-              Position
-            </label>
-            <select
-              value={filters.position}
-              onChange={(e) =>
-                setFilters({ ...filters, position: e.target.value })
-              }
-              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
-            >
-              {uniquePositions.map((pos) => (
-                <option key={pos} value={pos}>
-                  {pos}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Step Filter */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
-              Salary Step
-            </label>
-            <select
-              value={filters.step}
-              onChange={(e) => setFilters({ ...filters, step: e.target.value })}
-              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
-            >
-              {uniqueSteps.map((st) => (
-                <option key={st} value={st}>
-                  {st}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Gender Filter */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
-              Gender
-            </label>
-            <select
-              value={filters.gender}
-              onChange={(e) =>
-                setFilters({ ...filters, gender: e.target.value })
-              }
-              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
-            >
-              <option>All</option>
-              <option>Male</option>
-              <option>Female</option>
-            </select>
-          </div>
-
-          {/* Personnel Category Filter */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
-              Category
-            </label>
-            <select
-              value={filters.personnelCategory}
-              onChange={(e) =>
-                setFilters({ ...filters, personnelCategory: e.target.value })
-              }
-              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
-            >
-              {uniqueCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Department Filter */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
-              Department
-            </label>
-            <select
-              value={filters.department}
-              onChange={(e) =>
-                setFilters({ ...filters, department: e.target.value })
-              }
-              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
-            >
-              {uniqueDepartments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* School Level Filter */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-placeholder uppercase tracking-wider pl-1">
-              School Level
-            </label>
-            <select
-              value={filters.schoolLevel}
-              onChange={(e) =>
-                setFilters({ ...filters, schoolLevel: e.target.value })
-              }
-              className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all cursor-pointer"
-            >
-              {uniqueLevels.map((lvl) => (
-                <option key={lvl} value={lvl}>
-                  {lvl}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 relative z-10">
+          {[
+            { label: "Position", key: "position", options: uniquePositions },
+            { label: "Salary Step", key: "step", options: uniqueSteps },
+            { label: "Gender", key: "gender", options: ["All", "Male", "Female"] },
+            { label: "Category", key: "personnelCategory", options: uniqueCategories },
+            { label: "School Level", key: "schoolLevel", options: uniqueLevels },
+          ].map((f) => (
+            <div key={f.key} className="space-y-2">
+              <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] pl-1 opacity-70">
+                {f.label}
+              </label>
+              <div className="relative group/select">
+                <select
+                  value={filters[f.key]}
+                  onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}
+                  className="w-full bg-surface-alt/50 border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-xl pl-4 pr-10 py-3.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all appearance-none cursor-pointer hover:border-accent/20"
+                >
+                  {f.options.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-placeholder pointer-events-none group-focus-within/select:text-accent transition-colors">
+                  <i className="fas fa-chevron-down text-[10px]"></i>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-
-        {(filters.position !== "All" ||
-          filters.salaryGrade !== "All" ||
-          filters.civilStatus !== "All" ||
-          filters.tenure !== "All" ||
-          filters.step !== "All" ||
-          filters.gender !== "All" ||
-          filters.department !== "All" ||
-          filters.personnelCategory !== "All" ||
-          filters.schoolLevel !== "All") && (
-          <div className="mt-4 flex items-center gap-2 animate-[fadeIn_0.3s_ease-out]">
-            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
-            <span className="text-[10px] font-black text-accent uppercase tracking-widest">
-              Filters Active
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* 2. Analytics Bento Grid */}
-      {!metrics ? (
-        <div className="flex-1 min-h-[600px] bg-surface/50 border-2 border-dashed border-border-subtle rounded-[40px] flex flex-col items-center justify-center p-12 text-center animate-[fadeIn_0.5s_ease-out]">
-          <div className="w-24 h-24 bg-surface-alt rounded-full flex items-center justify-center mb-6 shadow-xl border border-border-subtle group hover:border-accent/30 transition-all duration-500">
-            <i className="fas fa-search-minus text-3xl text-text-placeholder group-hover:scale-110 group-hover:text-accent transition-all duration-500"></i>
-          </div>
-          <h2 className="text-2xl font-black text-text-main mb-2 tracking-tight">
-            No Workforce Data Found
-          </h2>
-          <p className="text-text-muted max-w-sm mb-8 font-medium leading-relaxed">
-            We couldn't find any personnel matching your current filter
-            criteria. Try adjusting your position, step, or gender settings.
-          </p>
-          <button
-            onClick={() =>
-              setFilters({ position: "All", step: "All", gender: "All" })
-            }
-            className="flex items-center gap-3 bg-accent text-accent-text px-8 py-3 rounded-2xl font-black shadow-lg shadow-accent/20 hover:scale-105 hover:shadow-accent/40 active:scale-95 transition-all"
-          >
-            <i className="fas fa-rotate-left"></i>
-            <span>Clear All Filters</span>
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* A. Position Hierarchy Breakdown */}
-          <div className="lg:col-span-2 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">
-                  Position Distribution
-                </h3>
-                <p className="text-text-muted text-sm font-medium m-0">
-                  Top organizational roles
-                </p>
-              </div>
-              <div className="px-4 py-2 bg-surface-alt border border-border-subtle rounded-xl text-xs font-bold text-text-main">
-                Personnel: {metrics?.total}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {metrics?.positions.map((pos, i) => {
-                const colors = [
-                  {
-                    bg: "bg-indigo-500/10",
-                    text: "text-indigo-400",
-                    border: "hover:border-indigo-500/50",
-                    glow: "shadow-indigo-500/20",
-                  },
-                  {
-                    bg: "bg-rose-500/10",
-                    text: "text-rose-400",
-                    border: "hover:border-rose-500/50",
-                    glow: "shadow-rose-500/20",
-                  },
-                  {
-                    bg: "bg-amber-500/10",
-                    text: "text-amber-400",
-                    border: "hover:border-amber-500/50",
-                    glow: "shadow-amber-500/20",
-                  },
-                  {
-                    bg: "bg-emerald-500/10",
-                    text: "text-emerald-400",
-                    border: "hover:border-emerald-500/50",
-                    glow: "shadow-emerald-500/20",
-                  },
-                  {
-                    bg: "bg-sky-500/10",
-                    text: "text-sky-400",
-                    border: "hover:border-sky-500/50",
-                    glow: "shadow-sky-500/20",
-                  },
-                  {
-                    bg: "bg-violet-500/10",
-                    text: "text-violet-400",
-                    border: "hover:border-violet-500/50",
-                    glow: "shadow-violet-500/20",
-                  },
-                ];
-                const theme = colors[i % colors.length];
-                return (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-4 bg-surface-alt/50 border border-border-subtle p-4 rounded-[24px] transition-all group cursor-pointer ${theme.border}`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-2xl ${theme.bg} flex items-center justify-center ${theme.text} text-sm font-black shadow-sm group-hover:scale-110 transition-transform shrink-0`}
-                    >
-                      {pos.count}
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-text-main font-bold text-[13px] truncate m-0 uppercase tracking-tight">
-                        {pos.name}
-                      </p>
-                      <p className="text-text-placeholder text-[9px] font-bold m-0 uppercase tracking-wider">
-                        {Math.round((pos.count / metrics.total) * 100)}%
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPositionDetails({
-                          name: pos.name,
-                          employees: filteredData.filter(
-                            (e) => e.position === pos.name,
-                          ),
-                        });
-                      }}
-                      className={`w-8 h-8 rounded-xl bg-surface border border-border-subtle flex items-center justify-center text-text-muted hover:bg-accent hover:text-accent-text transition-all shadow-sm`}
-                    >
-                      <i className="fas fa-users-viewfinder text-xs"></i>
-                    </button>
+      {metrics && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Visualizations Column */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Position Distribution - Bento Refined */}
+            <div className="bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm relative overflow-hidden group">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                    <i className="fas fa-user-tag"></i>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* B. Data Integrity Audit */}
-          <div className="lg:col-span-1 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col items-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-[60px] rounded-full -mr-16 -mt-16"></div>
-            <div className="w-full text-left mb-8">
-              <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">
-                Profile Integrity
-              </h3>
-              <p className="text-text-muted text-sm font-medium m-0">
-                Data audit
-              </p>
-            </div>
-
-            <div className="relative w-40 h-40 flex items-center justify-center mb-8">
-              <svg className="w-full h-full -rotate-90">
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="72"
-                  stroke="var(--bg-surface-alt)"
-                  strokeWidth="10"
-                  fill="none"
-                />
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="72"
-                  stroke={
-                    metrics?.integrity.overall > 90
-                      ? "var(--accent-primary)"
-                      : metrics?.integrity.overall > 70
-                        ? "#fbbf24"
-                        : "#ef4444"
-                  }
-                  strokeWidth="10"
-                  fill="none"
-                  strokeDasharray="452.4"
-                  strokeDashoffset={
-                    452.4 - (452.4 * (metrics?.integrity.overall || 0)) / 100
-                  }
-                  className="transition-all duration-1000 ease-out"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center">
-                <span
-                  className={`text-3xl font-black ${metrics?.integrity.overall > 90 ? "text-accent" : metrics?.integrity.overall > 70 ? "text-amber-400" : "text-rose-500"}`}
-                >
-                  {metrics?.integrity.overall}%
-                </span>
-                <span className="text-[9px] font-bold text-text-placeholder uppercase tracking-widest">
-                  Health
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full space-y-3">
-              {[
-                {
-                  label: "Photo",
-                  val: metrics?.integrity.photo,
-                  field: "photo_url",
-                },
-                { label: "TIN", val: metrics?.integrity.tin, field: "tin" },
-                {
-                  label: "PhilHealth",
-                  val: metrics?.integrity.philhealth,
-                  field: "philhealth_no",
-                },
-                {
-                  label: "Pag-IBIG",
-                  val: metrics?.integrity.pagibig,
-                  field: "pagibig_no",
-                },
-                {
-                  label: "Contact No",
-                  val: metrics?.integrity.contact,
-                  field: "contact_no",
-                },
-                {
-                  label: "BP Number",
-                  val: metrics?.integrity.bp,
-                  field: "bp_no",
-                },
-                {
-                  label: "Bank Account",
-                  val: metrics?.integrity.bank_account,
-                  field: "bank_account_no",
-                },
-                {
-                  label: "Item Number",
-                  val: metrics?.integrity.item,
-                  field: "item_no",
-                },
-                {
-                  label: "Appointment Date",
-                  val: metrics?.integrity.original_appointment,
-                  field: "original_appointment_date",
-                },
-                {
-                  label: "Birthdate",
-                  val: metrics?.integrity.birthdate,
-                  field: "birthdate",
-                },
-                {
-                  label: "Civil Status",
-                  val: metrics?.integrity.civil_status,
-                  field: "civil_status",
-                },
-              ].map((item, idx) => {
-                if (!showAllIntegrity && idx >= 4) return null;
-                const percent = Math.round(
-                  (item.val / (metrics?.total || 1)) * 100,
-                );
-                const colorClass =
-                  percent > 90
-                    ? "bg-accent"
-                    : percent > 70
-                      ? "bg-amber-400"
-                      : "bg-rose-500";
-                const textClass =
-                  percent > 90
-                    ? "text-accent"
-                    : percent > 70
-                      ? "text-amber-400"
-                      : "text-rose-500";
-
-                return (
-                  <div
-                    key={idx}
-                    className="flex flex-col gap-1 cursor-pointer group/item"
-                    onClick={() => setSelectedIntegrityField(item)}
-                  >
-                    <div className="flex justify-between text-[10px] font-bold">
-                      <span className="text-text-main group-hover/item:text-accent transition-colors">
-                        {item.label}
-                      </span>
-                      <span className={textClass}>{percent}%</span>
-                    </div>
-                    <div className="h-1 bg-surface-alt rounded-full overflow-hidden border border-border-subtle group-hover/item:border-accent/30 transition-all">
-                      <div
-                        className={`h-full transition-all duration-1000 ${colorClass}`}
-                        style={{
-                          width: `${percent}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setShowAllIntegrity(!showAllIntegrity)}
-              className="mt-6 w-full py-2 bg-surface-alt border border-border-subtle rounded-xl text-[10px] font-bold text-text-muted hover:text-accent hover:border-accent/30 transition-all"
-            >
-              {showAllIntegrity ? "Less" : "Audit Details"}
-            </button>
-          </div>
-
-          {/* C. Salary Grade Distribution (Full Width) */}
-          <div className="lg:col-span-3 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm relative overflow-hidden">
-            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-accent/5 to-transparent"></div>
-            <div className="flex justify-between items-start mb-8 relative z-10">
-              <div>
-                <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">
-                  Salary Grades
-                </h3>
-                <p className="text-text-muted text-sm font-medium m-0">
-                  Grade distribution
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
-                <i className="fas fa-money-bill-trend-up"></i>
-              </div>
-            </div>
-
-            <div className="flex items-end gap-3 h-[180px] px-2 relative z-10">
-              {metrics?.salaryGrades.map((sg, i) => (
-                <div
-                  key={i}
-                  className={`flex-1 flex flex-col items-center group relative h-full justify-end cursor-pointer transition-all ${filters.salaryGrade === sg.name ? "scale-105" : "hover:scale-105 opacity-80 hover:opacity-100"}`}
-                  onClick={() =>
-                    setFilters({
-                      ...filters,
-                      salaryGrade:
-                        filters.salaryGrade === sg.name ? "All" : sg.name,
-                    })
-                  }
-                >
-                  <div
-                    className={`absolute -top-8 opacity-0 group-hover:opacity-100 transition-all text-accent-text text-[10px] font-bold px-2 py-1 rounded ${filters.salaryGrade === sg.name ? "bg-accent opacity-100 shadow-lg" : "bg-text-placeholder"}`}
-                  >
-                    {sg.count}
-                  </div>
-                  <div
-                    className={`w-full border border-border-subtle rounded-t-lg transition-all ${filters.salaryGrade === sg.name ? "bg-accent/20 border-accent" : "bg-surface-alt group-hover:bg-accent/10 group-hover:border-accent/30"}`}
-                    style={{
-                      height: `${(sg.count / Math.max(...metrics.salaryGrades.map((x) => x.count))) * 100}%`,
-                    }}
-                  >
-                    <div
-                      className={`w-full h-full rounded-t-lg transition-all ${filters.salaryGrade === sg.name ? "bg-gradient-to-t from-accent to-accent/60 shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.3)]" : "bg-accent/40 group-hover:bg-accent"}`}
-                      style={{ height: "100%" }}
-                    ></div>
-                  </div>
-                  <span
-                    className={`mt-4 text-[10px] font-bold uppercase tracking-tighter text-center w-full transition-colors ${filters.salaryGrade === sg.name ? "text-accent" : "text-text-placeholder"}`}
-                  >
-                    {sg.name.replace("SG ", "")}
-                  </span>
+                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Position Distribution</h3>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* D. Civil Status Breakdown */}
-          <div className="lg:col-span-1 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-24 h-24 bg-violet-500/5 blur-[40px] rounded-full -ml-12 -mt-12"></div>
-            <div className="flex justify-between items-start mb-8 relative z-10">
-              <div>
-                <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">
-                  Civil Status
-                </h3>
-                <p className="text-text-muted text-sm font-medium m-0">
-                  Marital status
-                </p>
+                <div className="text-[10px] font-black text-text-placeholder uppercase tracking-widest opacity-60">Top 6 Positions</div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
-                <i className="fas fa-heart"></i>
-              </div>
-            </div>
 
-            <div className="flex-1 flex flex-col gap-4 justify-center relative z-10">
-              {metrics?.civilStatus.map((status, i) => {
-                const statusColors = [
-                  {
-                    text: "text-violet-400",
-                    bar: "bg-violet-500",
-                    bg: "bg-violet-500/10",
-                    border: "border-violet-500/20",
-                  },
-                  {
-                    text: "text-rose-400",
-                    bar: "bg-rose-500",
-                    bg: "bg-rose-500/10",
-                    border: "border-rose-500/20",
-                  },
-                  {
-                    text: "text-sky-400",
-                    bar: "bg-sky-500",
-                    bg: "bg-sky-500/10",
-                    border: "border-sky-500/20",
-                  },
-                  {
-                    text: "text-emerald-400",
-                    bar: "bg-emerald-500",
-                    bg: "bg-emerald-500/10",
-                    border: "border-emerald-500/20",
-                  },
-                ];
-                const theme = statusColors[i % statusColors.length];
-                const isActive = filters.civilStatus === status.name;
-
-                return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {metrics.positions.map((pos, i) => (
                   <div
-                    key={i}
-                    className={`flex flex-col gap-1 cursor-pointer transition-all ${isActive ? "scale-[1.02]" : "hover:translate-x-1 opacity-80 hover:opacity-100"}`}
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        civilStatus: isActive ? "All" : status.name,
-                      })
-                    }
+                    key={pos.name}
+                    onClick={() => setSelectedPositionDetails(pos)}
+                    className="group/item flex items-center justify-between p-5 bg-surface-alt/40 border border-border-subtle rounded-2xl hover:bg-surface-alt hover:border-accent/30 hover:scale-[1.02] transition-all cursor-pointer stagger-item"
+                    style={{"--delay": `${i * 0.1}s`}}
                   >
-                    <div className="flex justify-between items-center text-[10px] font-bold">
-                      <span
-                        className={`uppercase tracking-tight transition-colors ${isActive ? theme.text : "text-text-main"}`}
-                      >
-                        {status.name}
-                      </span>
-                      <span className="text-text-muted">{status.count}</span>
-                    </div>
-                    <div
-                      className={`h-2 rounded-full overflow-hidden border transition-all ${isActive ? `${theme.bg} ${theme.border}` : "bg-surface-alt border-border-subtle"}`}
-                    >
-                      <div
-                        className={`h-full transition-all duration-1000 ${isActive ? `${theme.bar} shadow-[0_0_10px_rgba(var(--accent-primary-rgb),0.3)]` : theme.bar}`}
-                        style={{
-                          width: `${(status.count / metrics.total) * 100}%`,
-                          opacity: isActive ? 1 : 0.6,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* E. Workforce Tenure Chart */}
-          <div className="lg:col-span-2 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 blur-[80px] rounded-full -mr-24 -mt-24"></div>
-            <div className="flex justify-between items-start mb-10 relative z-10">
-              <div>
-                <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">
-                  Workforce Tenure
-                </h3>
-                <p className="text-text-muted text-sm font-medium m-0">
-                  Institutional memory
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                <i className="fas fa-history"></i>
-              </div>
-            </div>
-
-            <div className="flex-1 flex items-end justify-between gap-4 min-h-[160px] px-2 relative z-10">
-              {metrics?.tenure.map((t, i) => {
-                const isActive = filters.tenure === t.name;
-                const tenureColors = [
-                  "bg-sky-400",
-                  "bg-teal-400",
-                  "bg-emerald-400",
-                  "bg-green-500",
-                  "bg-lime-500",
-                ];
-                const barColor = tenureColors[i % tenureColors.length];
-
-                return (
-                  <div
-                    key={i}
-                    className={`flex-1 flex flex-col items-center group cursor-pointer transition-all ${isActive ? "scale-105" : "hover:scale-105 opacity-60 hover:opacity-100"}`}
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        tenure: isActive ? "All" : t.name,
-                      })
-                    }
-                  >
-                    <div className="relative w-full flex flex-col items-center">
-                      <div
-                        className={`absolute -top-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-accent-text text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none ${isActive ? "bg-accent opacity-100" : "bg-text-placeholder"}`}
-                      >
-                        {t.count}
+                    <div className="flex items-center gap-4 overflow-hidden">
+                      <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-text-muted font-black border border-border-subtle group-hover/item:border-accent/20 group-hover/item:text-accent transition-colors">
+                        {i + 1}
                       </div>
-                      <div
-                        className={`w-full max-w-[40px] rounded-t-xl transition-all duration-1000 ease-out shadow-lg ${isActive ? `${barColor} shadow-emerald-500/40 opacity-100` : `${barColor} opacity-40 group-hover:opacity-100 shadow-emerald-500/5`}`}
-                        style={{
-                          height: `${(t.count / (Math.max(...metrics.tenure.map((x) => x.count)) || 1)) * 160}px`,
-                        }}
-                      ></div>
+                      <div className="overflow-hidden">
+                        <div className="text-text-main font-black text-[13px] truncate uppercase tracking-tight group-hover/item:text-accent transition-colors">
+                          {pos.name}
+                        </div>
+                        <div className="text-[10px] text-text-placeholder font-bold uppercase tracking-widest mt-0.5 opacity-60">
+                          Personnel Class
+                        </div>
+                      </div>
                     </div>
-                    <span
-                      className={`mt-4 text-[10px] font-bold uppercase tracking-wider transition-colors ${isActive ? "text-emerald-400" : "text-text-placeholder"}`}
-                    >
-                      {t.name}
-                    </span>
+                    <div className="text-right">
+                      <div className="text-text-main font-black text-lg leading-none">{pos.count}</div>
+                      <div className="text-[9px] text-accent font-black uppercase tracking-widest mt-1">
+                        {Math.round((pos.count / metrics.total) * 100)}%
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            </div>
+
+            {/* Secondary Charts Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               {/* Salary Brackets */}
+               <div className="bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                    <i className="fas fa-wallet"></i>
+                  </div>
+                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Salary Density</h3>
+                </div>
+                
+                <div className="space-y-5">
+                  {metrics.salary.brackets.map((b, i) => (
+                    <div key={b.name} className="space-y-2 stagger-item" style={{"--delay": `${i * 0.1}s`}}>
+                      <div className="flex justify-between items-end">
+                        <span className="text-[11px] font-black text-text-main uppercase tracking-widest">{b.name}</span>
+                        <span className="text-[12px] font-black text-accent">{b.count} Personnel</span>
+                      </div>
+                      <div className="h-2 w-full bg-surface-alt rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-accent/40 to-accent rounded-full transition-all duration-1000"
+                          style={{ width: `${(b.count / metrics.total) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tenure Distribution */}
+              <div className="bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                    <i className="fas fa-history"></i>
+                  </div>
+                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Retention & Tenure</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {metrics.tenure.map((t, i) => (
+                    <div key={t.name} className="p-4 bg-surface-alt/40 border border-border-subtle rounded-2xl flex flex-col items-center justify-center text-center group/tenure hover:border-purple-500/30 transition-all stagger-item" style={{"--delay": `${i * 0.1}s`}}>
+                       <div className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mb-2 opacity-60">{t.name}</div>
+                       <div className="text-xl font-black text-text-main group-hover/tenure:text-purple-400 transition-colors">{t.count}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Integrity Audit & Health - PREMIUM Bento Sidebar */}
+          <div className="space-y-8">
+            <div className="bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                    <i className="fas fa-shield-alt"></i>
+                  </div>
+                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Integrity Audit</h3>
+                </div>
+                <button 
+                  onClick={() => setShowAllIntegrity(!showAllIntegrity)}
+                  className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline"
+                >
+                  {showAllIntegrity ? "Collapse" : "View All"}
+                </button>
+              </div>
+
+              {/* Overall Health Meter */}
+              <div className="mb-10 text-center relative z-10">
+                 <div className="inline-flex items-center justify-center p-6 rounded-full bg-surface-alt/50 border-4 border-surface shadow-inner mb-4">
+                    <div className="text-4xl font-black text-text-main tracking-tighter">
+                      {metrics.integrity.overall}<span className="text-xl text-accent">%</span>
+                    </div>
+                 </div>
+                 <p className="text-[11px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">Profile Completeness Index</p>
+                 <div className="mt-6 h-1.5 w-full bg-surface-alt rounded-full overflow-hidden border border-border-subtle/50">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ${metrics.integrity.overall > 80 ? 'bg-emerald-500' : metrics.integrity.overall > 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                      style={{ width: `${metrics.integrity.overall}%` }}
+                    ></div>
+                 </div>
+              </div>
+
+              <div className="space-y-4 relative z-10">
+                {Object.entries(metrics.integrity)
+                  .filter(([key]) => key !== "overall")
+                  .slice(0, showAllIntegrity ? 12 : 6)
+                  .map(([field, count], i) => {
+                    const percent = Math.round((count / metrics.total) * 100);
+                    return (
+                      <div
+                        key={field}
+                        onClick={() => setSelectedIntegrityField({ field, count })}
+                        className="flex items-center justify-between p-4 bg-surface-alt/40 border border-border-subtle rounded-2xl hover:bg-surface-alt hover:border-accent/30 transition-all cursor-pointer group/audit stagger-item"
+                        style={{"--delay": `${i * 0.05}s`}}
+                      >
+                        <div className="flex items-center gap-3">
+                           <div className={`w-2 h-2 rounded-full ${percent > 90 ? 'bg-emerald-500' : percent > 70 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
+                           <span className="text-[10px] font-black text-text-main uppercase tracking-widest truncate max-w-[120px]">
+                             {field.replace("_url", "").replace("_no", "").replace("_date", "").replace(/_/g, " ")}
+                           </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[11px] font-black text-text-placeholder">{count}/{metrics.total}</span>
+                           <i className="fas fa-chevron-right text-[8px] text-text-placeholder group-hover/audit:translate-x-1 transition-transform"></i>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Quick Analytics Summary */}
+            <div className="bg-surface-alt border border-border-subtle p-8 rounded-[32px] space-y-6">
+              <h4 className="text-[11px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">Workforce Snapshot</h4>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-muted">Avg Promotion Cycle</span>
+                  <span className="text-sm font-black text-text-main">{metrics.career.avgYearsToPromote} yrs</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-muted">Stagnation Alert</span>
+                  <span className="text-sm font-black text-red-400">{metrics.career.stagnantPercent}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-muted">Total Payroll Cap</span>
+                  <span className="text-sm font-black text-emerald-400">₱{metrics.salary.totalMonthly.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Modals & Overlays */}
       {/* 4. Drill-down Modal (Position/Integrity) */}
       {(selectedPositionDetails || selectedIntegrityField) && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -1102,13 +797,13 @@ const Report = () => {
                 <div>
                   <h3 className="text-text-main font-bold m-0 text-sm uppercase tracking-tight">
                     {selectedIntegrityField
-                      ? `Incomplete: ${selectedIntegrityField.label}`
+                      ? `Incomplete: ${selectedIntegrityField.field.replace("_url", "").replace("_no", "").replace("_date", "").replace(/_/g, " ")}`
                       : selectedPositionDetails.name}
                   </h3>
                   <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest m-0">
                     {selectedIntegrityField
-                      ? `${metrics.total - selectedIntegrityField.val} Personnel Missing Data`
-                      : `${selectedPositionDetails.employees.length} Personnel Assigned`}
+                      ? `${metrics.total - selectedIntegrityField.count} Personnel Missing Data`
+                      : `${selectedPositionDetails.count} Personnel Assigned`}
                   </p>
                 </div>
               </div>
@@ -1128,7 +823,9 @@ const Report = () => {
                 ? filteredData.filter(
                     (emp) => !emp[selectedIntegrityField.field],
                   )
-                : selectedPositionDetails.employees
+                : filteredData.filter(
+                    (emp) => (emp.position || "Unassigned") === selectedPositionDetails.name,
+                  )
               ).map((emp, i) => (
                 <div
                   key={i}
