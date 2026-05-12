@@ -210,14 +210,49 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex flex-col gap-6 animate-pulse">
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {Array(10).fill(0).map((_, i) => (
+            <div key={i} className="bg-surface border border-border-subtle p-5 rounded-[24px] h-[140px] flex flex-col justify-between">
+              <div className="w-10 h-10 rounded-xl skeleton"></div>
+              <div className="space-y-2">
+                <div className="w-1/2 h-2 skeleton"></div>
+                <div className="w-3/4 h-6 skeleton"></div>
+              </div>
+              <div className="w-1/3 h-3 skeleton"></div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 bg-surface border border-border-subtle p-6 rounded-[32px] h-[400px] flex flex-col gap-4">
+             <div className="w-1/2 h-6 skeleton"></div>
+             <div className="flex-1 flex items-center justify-center">
+                <div className="w-44 h-44 rounded-full skeleton"></div>
+             </div>
+             <div className="grid grid-cols-2 gap-2">
+                <div className="h-4 skeleton"></div>
+                <div className="h-4 skeleton"></div>
+             </div>
+          </div>
+          <div className="lg:col-span-2 bg-surface border border-border-subtle p-6 rounded-[32px] h-[400px] flex flex-col gap-6">
+             <div className="w-1/3 h-6 skeleton"></div>
+             {Array(5).fill(0).map((_, i) => (
+               <div key={i} className="space-y-2">
+                 <div className="flex justify-between"><div className="w-24 h-4 skeleton"></div><div className="w-12 h-4 skeleton"></div></div>
+                 <div className="w-full h-3 skeleton"></div>
+               </div>
+             ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 p-1 md:p-0 animate-[fadeIn_0.4s_ease-out]">
+    <div className="flex flex-col gap-6 p-1 md:p-0">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
@@ -227,6 +262,7 @@ const Dashboard = () => {
             icon: "fas fa-users",
             color: "text-accent",
             bg: "bg-accent/10",
+            glow: "group-hover:shadow-accent/20",
             sub: "Total Staff",
           },
           {
@@ -235,6 +271,7 @@ const Dashboard = () => {
             icon: "fas fa-mars",
             color: "text-icon-cyan",
             bg: "bg-icon-cyan/10",
+            glow: "group-hover:shadow-icon-cyan/20",
             sub: `${stats.total > 0 ? Math.round((stats.male / stats.total) * 100) : 0}% of Total`,
           },
           {
@@ -243,6 +280,7 @@ const Dashboard = () => {
             icon: "fas fa-venus",
             color: "text-icon-pink",
             bg: "bg-icon-pink/10",
+            glow: "group-hover:shadow-icon-pink/20",
             sub: `${stats.total > 0 ? Math.round((stats.female / stats.total) * 100) : 0}% of Total`,
           },
           {
@@ -251,6 +289,7 @@ const Dashboard = () => {
             icon: "fas fa-chalkboard",
             color: "text-emerald-400",
             bg: "bg-emerald-500/10",
+            glow: "group-hover:shadow-emerald-500/20",
             sub: "Faculty Members",
           },
           {
@@ -259,6 +298,7 @@ const Dashboard = () => {
             icon: "fas fa-briefcase",
             color: "text-orange-400",
             bg: "bg-orange-500/10",
+            glow: "group-hover:shadow-orange-500/20",
             sub: "Support Staff",
           },
           {
@@ -267,6 +307,7 @@ const Dashboard = () => {
             icon: "fas fa-check-circle",
             color: "text-green-400",
             bg: "bg-green-500/10",
+            glow: "group-hover:shadow-green-500/20",
             sub: "100% Data Ready",
           },
           {
@@ -275,6 +316,7 @@ const Dashboard = () => {
             icon: "fas fa-user-graduate",
             color: "text-blue-400",
             bg: "bg-blue-500/10",
+            glow: "group-hover:shadow-blue-500/20",
             sub: "JHS Personnel",
           },
           {
@@ -283,6 +325,7 @@ const Dashboard = () => {
             icon: "fas fa-graduation-cap",
             color: "text-purple-400",
             bg: "bg-purple-500/10",
+            glow: "group-hover:shadow-purple-500/20",
             sub: "SHS Personnel",
           },
           {
@@ -291,6 +334,7 @@ const Dashboard = () => {
             icon: "fas fa-user-clock",
             color: "text-amber-400",
             bg: "bg-amber-500/10",
+            glow: "group-hover:shadow-amber-500/20",
             sub: "Active Leaves",
           },
           {
@@ -299,26 +343,32 @@ const Dashboard = () => {
             icon: "fas fa-clipboard-list",
             color: "text-rose-400",
             bg: "bg-rose-500/10",
+            glow: "group-hover:shadow-rose-500/20",
             sub: "Needs Review",
           },
         ].map((item, idx) => (
           <div
             key={idx}
-            className="bg-surface border border-border-subtle p-5 rounded-[24px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
+            style={{"--delay": `${idx * 0.05}s`}}
+            className={`
+              bg-surface border border-border-subtle p-5 rounded-[24px] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group stagger-item relative overflow-hidden
+              ${item.glow}
+            `}
           >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/5 dark:to-white/2 pointer-events-none"></div>
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-4 ${item.bg} ${item.color} border border-border-subtle transition-transform group-hover:scale-110`}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-4 ${item.bg} ${item.color} border border-border-subtle transition-all duration-500 group-hover:scale-110 group-hover:rotate-3`}
             >
               <i className={item.icon}></i>
             </div>
-            <p className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-1">
+            <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-60">
               {item.label}
             </p>
-            <h3 className="text-text-main text-2xl font-black mb-2">
+            <h3 className="text-text-main text-2xl font-black mb-2 tracking-tight">
               {item.value}
             </h3>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-alt border border-border-subtle text-text-placeholder">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-surface-alt border border-border-subtle text-text-placeholder uppercase tracking-wider">
                 {item.sub}
               </span>
             </div>
@@ -327,63 +377,65 @@ const Dashboard = () => {
       </div>
 
       {/* Visualizations Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger-item" style={{"--delay": "0.6s"}}>
         {/* Left: Salary Grade Distribution (Donut Chart) */}
-        <div className="lg:col-span-1 bg-surface border border-border-subtle p-6 rounded-[32px] shadow-sm flex flex-col">
-          <div className="flex justify-between items-start mb-6">
+        <div className="lg:col-span-1 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col hover:shadow-xl transition-all duration-500">
+          <div className="flex justify-between items-start mb-8">
             <div>
-              <h3 className="text-text-main font-bold text-lg m-0">
+              <h3 className="text-text-main font-black text-xl m-0 tracking-tight">
                 Salary Grades
               </h3>
-              <p className="text-text-muted text-sm font-medium m-0">
-                Hierarchy distribution
+              <p className="text-text-muted text-[13px] font-medium m-0 opacity-70">
+                Personnel hierarchy split
               </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-accent/5 flex items-center justify-center text-accent border border-accent/10">
+              <i className="fas fa-layer-group text-sm"></i>
             </div>
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center py-4">
-            {/* CSS Donut Chart */}
+            {/* CSS Donut Chart - Improved Dynamic Logic */}
             <div
-              className="relative w-44 h-44 rounded-full flex items-center justify-center transition-transform hover:scale-105 duration-500 shadow-lg shadow-accent/5"
+              className="relative w-52 h-52 rounded-full flex items-center justify-center transition-all hover:scale-105 duration-700 shadow-[0_0_50px_rgba(var(--color-accent),0.05)] group/chart"
               style={{
                 background: `conic-gradient(
-                      var(--accent-primary) 0% ${(stats.salaryGrades[0]?.count / stats.total) * 100}%,
-                      var(--icon-cyan) ${(stats.salaryGrades[0]?.count / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0)) / stats.total) * 100}%,
-                      var(--icon-pink) ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0)) / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0)) / stats.total) * 100}%,
-                      var(--border-subtle) ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0)) / stats.total) * 100}% 100%
+                      #ccff00 0% ${(stats.salaryGrades[0]?.count / stats.total) * 100}%,
+                      #00f0ff ${(stats.salaryGrades[0]?.count / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0)) / stats.total) * 100}%,
+                      #ff00ff ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0)) / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0)) / stats.total) * 100}%,
+                      #4f46e5 ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0)) / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0) + (stats.salaryGrades[3]?.count || 0)) / stats.total) * 100}%,
+                      var(--border-subtle) ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0) + (stats.salaryGrades[3]?.count || 0)) / stats.total) * 100}% 100%
                     )`,
               }}
             >
-              {/* Inner Circle (The "Hole") */}
-              <div className="w-[75%] h-[75%] bg-surface rounded-full flex flex-col items-center justify-center shadow-inner">
-                <span className="text-text-main text-3xl font-black">
+              <div className="absolute inset-0 rounded-full bg-black/5 dark:bg-white/5 opacity-0 group-hover/chart:opacity-100 transition-opacity"></div>
+              {/* Inner Circle */}
+              <div className="w-[78%] h-[78%] bg-surface rounded-full flex flex-col items-center justify-center shadow-[inner_0_2px_10px_rgba(0,0,0,0.05)] border border-border-subtle/30">
+                <span className="text-text-main text-4xl font-black tracking-tighter leading-none mb-1">
                   {stats.total}
                 </span>
-                <span className="text-text-placeholder text-[10px] font-bold uppercase tracking-widest">
+                <span className="text-text-placeholder text-[10px] font-black uppercase tracking-[0.2em] opacity-60">
                   Personnel
                 </span>
               </div>
             </div>
 
-            {/* Legend */}
-            <div className="mt-8 w-full grid grid-cols-2 gap-3">
+            {/* Legend - Standardized */}
+            <div className="mt-10 w-full grid grid-cols-2 gap-x-6 gap-y-3">
               {stats.salaryGrades.slice(0, 4).map((sg, i) => {
-                const colors = [
-                  "var(--accent-primary)",
-                  "var(--icon-cyan)",
-                  "var(--icon-pink)",
-                  "var(--border-subtle)",
-                ];
+                const colors = ["#ccff00", "#00f0ff", "#ff00ff", "#4f46e5"];
                 return (
-                  <div key={i} className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-sm"
-                      style={{ backgroundColor: colors[i] }}
-                    ></div>
-                    <span className="text-text-main text-[11px] font-bold truncate">
-                      {sg.name}
-                    </span>
-                    <span className="text-text-placeholder text-[10px] font-medium ml-auto">
+                  <div key={i} className="flex items-center justify-between group/item cursor-default">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-2.5 h-2.5 rounded-sm shrink-0 group-hover/item:scale-125 transition-transform"
+                        style={{ backgroundColor: colors[i] }}
+                      ></div>
+                      <span className="text-text-main text-[12px] font-bold truncate opacity-80 group-hover/item:opacity-100 transition-opacity">
+                        {sg.name}
+                      </span>
+                    </div>
+                    <span className="text-text-placeholder text-[11px] font-black ml-2">
                       {sg.count}
                     </span>
                   </div>
@@ -394,85 +446,75 @@ const Dashboard = () => {
         </div>
 
         {/* Right: Position Breakdown (Bar Chart visualization) */}
-        <div className="lg:col-span-2 bg-surface border border-border-subtle p-6 rounded-[32px] shadow-sm flex flex-col">
-          <div className="flex justify-between items-start mb-8">
+        <div className="lg:col-span-2 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col hover:shadow-xl transition-all duration-500">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-10">
             <div>
-              <h3 className="text-text-main font-bold text-lg m-0">
+              <h3 className="text-text-main font-black text-xl m-0 tracking-tight">
                 Position Distribution
               </h3>
-              <p className="text-text-muted text-sm font-medium m-0">
-                Top roles in the organization
+              <p className="text-text-muted text-[13px] font-medium m-0 opacity-70">
+                Core roles and staffing density
               </p>
               <Link
                 to="/report"
-                className="mt-2 inline-flex items-center gap-2 text-accent text-xs font-bold hover:underline transition-all"
+                className="mt-3 inline-flex items-center gap-2 text-accent text-[11px] font-black uppercase tracking-wider hover:opacity-70 transition-all group/link"
               >
-                <i className="fas fa-chart-line"></i> View full analytics
+                <span>Full Analytics</span>
+                <i className="fas fa-arrow-right text-[10px] group-hover/link:translate-x-1 transition-transform"></i>
               </Link>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange("category", e.target.value)}
-                className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm"
-              >
-                {uniqueCategories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filters.schoolLevel}
-                onChange={(e) => handleFilterChange("schoolLevel", e.target.value)}
-                className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm"
-              >
-                {uniqueLevels.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {lvl}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filters.department}
-                onChange={(e) =>
-                  handleFilterChange("department", e.target.value)
-                }
-                className="bg-surface-alt border border-border-subtle text-text-main text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-accent shadow-sm"
-              >
-                {uniqueDepartments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
+            
+            <div className="flex flex-wrap gap-2.5">
+              {[
+                { key: 'category', value: filters.category, options: uniqueCategories },
+                { key: 'schoolLevel', value: filters.schoolLevel, options: uniqueLevels },
+                { key: 'department', value: filters.department, options: uniqueDepartments }
+              ].map((filter) => (
+                <select
+                  key={filter.key}
+                  value={filter.value}
+                  onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                  className="bg-surface-alt border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-xl px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm transition-all hover:border-accent/30 cursor-pointer"
+                >
+                  {filter.options.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ))}
             </div>
           </div>
 
-          <div className="flex flex-col gap-5 flex-1">
-            {stats.positions.map((pos, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="flex justify-between items-center text-sm font-bold">
-                  <span className="text-text-main">{pos.name}</span>
-                  <span className="text-text-muted">{pos.count} Members</span>
+          <div className="flex flex-col gap-6 flex-1 pr-2">
+            {stats.positions.length > 0 ? stats.positions.map((pos, i) => (
+              <div key={i} className="flex flex-col gap-2.5 group/bar">
+                <div className="flex justify-between items-end text-[12px] font-bold">
+                  <span className="text-text-main opacity-90 group-hover/bar:text-accent transition-colors uppercase tracking-tight">{pos.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-placeholder text-[10px] font-black uppercase tracking-widest">{Math.round((pos.count/stats.total)*100)}%</span>
+                    <span className="text-text-main font-black">{pos.count}</span>
+                  </div>
                 </div>
-                <div className="h-3 bg-surface-alt border border-border-subtle rounded-full overflow-hidden">
+                <div className="h-2.5 bg-surface-alt/50 border border-border-subtle/50 rounded-full overflow-hidden p-[2px]">
                   <div
-                    className={`h-full bg-gradient-to-r from-accent to-accent/60 transition-all duration-1000 ease-out rounded-full`}
+                    className="h-full bg-gradient-to-r from-accent via-accent/80 to-accent/40 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(var(--color-accent),0.2)]"
                     style={{ width: `${(pos.count / stats.total) * 100}%` }}
                   ></div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="flex-1 flex flex-col items-center justify-center opacity-40">
+                <i className="fas fa-search-minus text-3xl mb-3"></i>
+                <p className="text-sm font-bold">No results found for current filters</p>
+              </div>
+            )}
           </div>
 
-          <div className="mt-6 flex items-center gap-4 text-xs font-bold text-text-placeholder uppercase tracking-wider">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 bg-accent rounded-sm"></div> Active
+          <div className="mt-8 pt-6 border-t border-border-subtle/50 flex items-center gap-6 text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] opacity-60">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-accent rounded-sm shadow-[0_0_8px_rgba(var(--color-accent),0.3)]"></div> Active Role
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 bg-surface-alt border border-border-subtle rounded-sm"></div>{" "}
-              Vacant
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-surface-alt border border-border-subtle rounded-sm"></div> Benchmarked
             </div>
           </div>
         </div>

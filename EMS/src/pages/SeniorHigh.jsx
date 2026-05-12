@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
 
@@ -26,6 +27,7 @@ const DEPARTMENT_OPTIONS = {
 };
 
 const SeniorHigh = () => {
+  const { showToast } = useNotifications();
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -319,7 +321,7 @@ const SeniorHigh = () => {
       .upload(fileName, file);
 
     if (uploadError) {
-      alert("Error uploading photo: " + uploadError.message);
+      showToast("Error uploading photo: " + uploadError.message, "error");
       setIsUploading(false);
       return;
     }
@@ -400,9 +402,10 @@ const SeniorHigh = () => {
           .delete()
           .eq("id", empToDelete.id);
         if (error) {
-          alert("Failed to delete: " + error.message);
+          showToast("Failed to delete: " + error.message, "error");
           return;
         }
+        showToast("Employee record removed", "success");
       }
       const newEmployees = [...employees];
       newEmployees.splice(deletingIndex, 1);
@@ -441,7 +444,7 @@ const SeniorHigh = () => {
     ];
     for (let field of required) {
       if (!formData[field] || String(formData[field]).trim() === "") {
-        alert("Please fill in all required fields.");
+        showToast(`Missing required field: ${field}`, "error");
         return;
       }
     }
@@ -451,7 +454,7 @@ const SeniorHigh = () => {
         emp.employeeNo === formData.employeeNo && idx !== editingIndex,
     );
     if (isDuplicate) {
-      alert("Employee number already exists.");
+      showToast("Employee number already exists.", "error");
       return;
     }
 
@@ -470,9 +473,10 @@ const SeniorHigh = () => {
         .update(dbData)
         .eq("id", formData.id);
       if (error) {
-        alert("Update failed: " + error.message);
+        showToast("Update failed: " + error.message, "error");
         return;
       }
+      showToast("Profile updated successfully", "success");
 
       // TRACK ITEM HISTORY: If item number changed, update ledger
       if (oldItemNo !== formData.itemNo) {
@@ -516,9 +520,10 @@ const SeniorHigh = () => {
         .insert([dbData])
         .select();
       if (error) {
-        alert("Insert failed: " + error.message);
+        showToast("Insert failed: " + error.message, "error");
         return;
       }
+      showToast("Personnel added successfully", "success");
 
       // Log initial item assignment
       if (formData.itemNo) {
@@ -549,226 +554,245 @@ const SeniorHigh = () => {
     setSortConfig({ key, direction });
   };
 
+  const SkeletonList = () => (
+    <div className="flex-1 overflow-hidden">
+      {viewMode === "table" ? (
+        <div className="border border-border-subtle rounded-[24px] bg-surface overflow-hidden">
+          <div className="h-12 bg-surface-alt/50 border-b border-border-subtle"></div>
+          {Array(8).fill(0).map((_, i) => (
+            <div key={i} className="h-14 border-b border-border-subtle/50 flex items-center px-4 gap-4">
+              <div className="w-24 h-4 skeleton"></div>
+              <div className="flex-1 h-4 skeleton"></div>
+              <div className="w-20 h-6 skeleton rounded-full"></div>
+              <div className="w-32 h-4 skeleton"></div>
+              <div className="w-24 h-4 skeleton"></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array(8).fill(0).map((_, i) => (
+            <div key={i} className="bg-surface border border-border-subtle rounded-[24px] p-5 h-[340px] flex flex-col justify-between">
+              <div className="flex justify-between">
+                <div className="w-14 h-14 rounded-full skeleton"></div>
+                <div className="w-8 h-8 rounded-full skeleton"></div>
+              </div>
+              <div className="space-y-2 mt-4">
+                <div className="w-3/4 h-5 skeleton"></div>
+                <div className="w-1/2 h-3 skeleton"></div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <div className="w-16 h-5 skeleton rounded-md"></div>
+                <div className="w-16 h-5 skeleton rounded-md"></div>
+              </div>
+              <div className="mt-4 p-4 rounded-2xl bg-surface-alt/50 h-24 skeleton"></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col h-full relative">
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 shrink-0">
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto flex-1">
-          <div className="w-full md:w-[400px] flex items-center gap-3 bg-surface border border-border-subtle rounded-[14px] px-4 py-3 shadow-sm focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10 transition-all">
-            <i className="fas fa-search text-text-placeholder text-[16px]"></i>
+    <div className="flex flex-col h-full relative animate-[fadeIn_0.4s_ease-out]">
+      {/* Search & Action Bar */}
+      <div className="flex flex-col xl:flex-row gap-4 justify-between items-stretch xl:items-center mb-6 shrink-0">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-1">
+          {/* Search Input */}
+          <div className="relative group flex-1 max-w-md">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-placeholder group-focus-within:text-accent transition-colors">
+              <i className="fas fa-search text-[14px]"></i>
+            </div>
             <input
               type="text"
-              placeholder="Search Senior High employee..."
+              placeholder="Search Senior High personnel..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-none outline-none w-full text-[15px] text-text-main bg-transparent font-medium placeholder:text-text-placeholder"
+              className="w-full bg-surface border border-border-subtle rounded-[16px] pl-11 pr-4 py-3 text-[14px] text-text-main font-bold placeholder:text-text-placeholder/60 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm transition-all"
             />
           </div>
 
-          <div className="flex bg-surface-alt border border-border-subtle p-1 rounded-[12px] shadow-sm self-start sm:self-center">
+          {/* View Toggles */}
+          <div className="flex bg-surface-alt/50 border border-border-subtle p-1 rounded-[14px] shadow-sm self-start">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-[8px] flex items-center justify-center transition-all ${viewMode === "grid" ? "bg-surface shadow-sm text-accent" : "text-text-muted hover:text-text-main"}`}
-              title="Grid View"
+              className={`px-3.5 py-2 rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "grid" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
             >
-              <i className="fas fa-th-large text-[16px]"></i>
+              <i className="fas fa-th-large"></i>
+              <span className="hidden sm:inline">Grid</span>
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`p-2 rounded-[8px] flex items-center justify-center transition-all ${viewMode === "table" ? "bg-surface shadow-sm text-accent" : "text-text-muted hover:text-text-main"}`}
-              title="Table View"
+              className={`px-3.5 py-2 rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "table" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
             >
-              <i className="fas fa-list text-[16px]"></i>
+              <i className="fas fa-list"></i>
+              <span className="hidden sm:inline">Table</span>
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 self-start sm:self-center">
-            <select
-              value={departmentFilter}
-              onChange={(e) => {
-                setDepartmentFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-surface border border-border-subtle text-text-main text-[14px] font-medium rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50 max-w-[180px] truncate"
-            >
-              {departmentOptions.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+          {/* Quick Filters */}
+          <div className="flex items-center gap-2.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+            <div className="relative">
+              <select
+                value={departmentFilter}
+                onChange={(e) => {
+                  setDepartmentFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
+              >
+                {departmentOptions.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-placeholder pointer-events-none text-[10px]">
+                <i className="fas fa-chevron-down"></i>
+              </div>
+            </div>
 
-            <select
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-surface border border-border-subtle text-text-main text-[14px] font-medium rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
-            >
-              <option value="All Categories">All Categories</option>
-              <option value="Teaching">Teaching</option>
-              <option value="Non-Teaching">Non-Teaching</option>
-            </select>
+            <div className="relative">
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
+              >
+                <option value="All Categories">All Categories</option>
+                <option value="Teaching">Teaching</option>
+                <option value="Non-Teaching">Non-Teaching</option>
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-placeholder pointer-events-none text-[10px]">
+                <i className="fas fa-chevron-down"></i>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <button
-            onClick={handleAdd}
-            className="inline-flex justify-center items-center gap-2 bg-accent text-accent-text border border-accent px-5 py-2.5 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-accent-hover hover:scale-105 hover:shadow-md group"
-          >
-            <i className="fas fa-plus"></i> Add Employee
-          </button>
-        </div>
+        {/* Add Button */}
+        <button
+          onClick={handleAdd}
+          className="bg-accent text-accent-text px-6 py-3 rounded-[16px] font-black text-[12px] uppercase tracking-[0.1em] shadow-lg shadow-accent/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-accent/20"
+        >
+          <i className="fas fa-user-plus text-[14px]"></i>
+          <span>Add Personnel</span>
+        </button>
       </div>
 
-      {viewMode === "table" ? (
-        <div className="flex-1 w-full min-h-0 overflow-auto border border-border-subtle rounded-[20px] bg-surface shadow-sm mb-4">
-          <table className="w-full min-w-[980px] table-fixed border-collapse text-[14px]">
-            <thead className="bg-surface-alt sticky top-0 z-10 border-b border-border-subtle">
+      {isLoading ? (
+        <SkeletonList />
+      ) : viewMode === "table" ? (
+        <div className="flex-1 w-full min-h-0 overflow-auto border border-border-subtle rounded-[24px] bg-surface shadow-sm mb-4 custom-scrollbar">
+          <table className="w-full min-w-[1000px] table-fixed border-collapse text-[13px]">
+            <thead className="bg-surface-alt/50 backdrop-blur-md sticky top-0 z-10 border-b border-border-subtle">
               <tr>
                 <th
-                  className="p-4 md:p-5 w-[14%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                   className="p-4 w-[14%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px] cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("employeeNo")}
                 >
-                  Employee No.{" "}
-                  {sortConfig.key === "employeeNo" && (
-                    <i
-                      className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} ml-1`}
-                    ></i>
-                  )}
+                  <div className="flex items-center gap-2">
+                    ID No.
+                    {sortConfig.key === "employeeNo" && (
+                      <i className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} text-accent`}></i>
+                    )}
+                  </div>
                 </th>
                 <th
-                  className="p-4 md:p-5 w-[20%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-4 w-[22%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px] cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("lastName")}
                 >
-                  Name{" "}
-                  {sortConfig.key === "lastName" && (
-                    <i
-                      className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} ml-1`}
-                    ></i>
-                  )}
+                   <div className="flex items-center gap-2">
+                    Personnel Name
+                    {sortConfig.key === "lastName" && (
+                      <i className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} text-accent`}></i>
+                    )}
+                  </div>
                 </th>
+                <th className="p-4 w-[10%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px]">Gender</th>
                 <th
-                  className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
-                  onClick={() => handleSort("gender")}
-                >
-                  Gender{" "}
-                  {sortConfig.key === "gender" && (
-                    <i
-                      className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} ml-1`}
-                    ></i>
-                  )}
-                </th>
-                <th
-                  className="p-4 md:p-5 w-[16%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
+                  className="p-4 w-[18%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px] cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("position")}
                 >
-                  Position{" "}
-                  {sortConfig.key === "position" && (
-                    <i
-                      className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} ml-1`}
-                    ></i>
-                  )}
-                  {sortConfig.key !== "position" && (
-                    <i className="fas fa-sort ml-1 opacity-30"></i>
-                  )}
+                   <div className="flex items-center gap-2">
+                    Position
+                    {sortConfig.key === "position" ? (
+                      <i className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} text-accent`}></i>
+                    ) : <i className="fas fa-sort opacity-20"></i>}
+                  </div>
                 </th>
-                <th
-                  className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap cursor-pointer hover:bg-surface-hover transition-colors"
-                  onClick={() => handleSort("step")}
-                >
-                  Step{" "}
-                  {sortConfig.key === "step" && (
-                    <i
-                      className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} ml-1`}
-                    ></i>
-                  )}
-                </th>
-                <th className="p-4 md:p-5 w-[10%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
-                  Salary Grade
-                </th>
-                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
-                  Base Salary
-                </th>
-                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
-                  Contact Number
-                </th>
-                <th className="p-4 md:p-5 w-[12%] text-center align-middle font-bold text-text-muted uppercase tracking-wider text-[12px] whitespace-nowrap">
-                  Actions
-                </th>
+                <th className="p-4 w-[12%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px]">SG/Step</th>
+                <th className="p-4 w-[12%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px]">Salary</th>
+                <th className="p-4 w-[12%] text-right font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px]">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border-subtle/50">
               {paginatedEmployees.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan="9"
-                    className="p-[16px_18px] text-center text-text-muted"
-                  >
-                    No employee records found.
+                  <td colSpan="7" className="p-12 text-center text-text-placeholder font-bold">
+                    No personnel records found.
                   </td>
                 </tr>
               ) : (
-                paginatedEmployees.map((emp, i) => (
+                paginatedEmployees.map((emp) => (
                   <tr
                     key={emp.employeeNo}
-                    className={`transition-all duration-200 hover:bg-surface-hover ${i % 2 === 0 ? "bg-surface" : "bg-surface-alt"}`}
+                    className="hover:bg-surface-alt/50 transition-colors group"
                   >
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-4 text-text-muted font-bold tracking-tight">
                       {emp.employeeNo}
                     </td>
-                    <td className="p-4 md:p-5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
-                      {[emp.lastName, emp.firstName, emp.middleName]
-                        .filter(Boolean)
-                        .join(", ")}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                         <img
+                          src={emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName)}&background=random&color=fff&bold=true`}
+                          className="w-8 h-8 rounded-full border border-border-subtle object-cover"
+                        />
+                        <span className="text-text-main font-black">
+                          {[emp.lastName, emp.firstName].filter(Boolean).join(", ")}
+                        </span>
+                      </div>
                     </td>
-                    <td className="p-4 md:p-5 text-center align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold ${emp.gender === "Male" ? "bg-surface-alt text-icon-cyan border border-icon-cyan/30" : emp.gender === "Female" ? "bg-surface-alt text-icon-pink border border-icon-pink/30" : "bg-surface-alt text-text-muted border border-border-subtle"}`}
-                      >
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${emp.gender === "Male" ? "text-icon-cyan bg-icon-cyan/10" : "text-icon-pink bg-icon-pink/10"}`}>
                         {emp.gender}
                       </span>
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-4 text-text-main font-bold text-[12px] opacity-80 uppercase tracking-tight">
                       {emp.position}
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
-                      {emp.step}
+                    <td className="p-4">
+                      <div className="flex items-center gap-1.5 font-black text-[11px] text-accent">
+                        <span>{emp.salaryGrade}</span>
+                        <span className="opacity-30">/</span>
+                        <span className="opacity-70">{emp.step}</span>
+                      </div>
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold bg-surface-alt text-accent border border-accent/30">
-                        {emp.salaryGrade}
-                      </span>
-                    </td>
-                    <td className="p-4 md:p-5 text-text-main text-center font-bold align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
+                    <td className="p-4 text-emerald-400 font-black text-[13px] tracking-tighter">
                       {getSalary(emp.salaryGrade, emp.step)}
                     </td>
-                    <td className="p-4 md:p-5 text-text-muted text-center font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-subtle">
-                      {emp.contactNo}
-                    </td>
-                    <td className="p-4 md:p-5 text-center align-middle whitespace-nowrap border-b border-border-subtle">
-                      <div className="flex justify-center gap-2">
+                    <td className="p-4">
+                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleView(emp)}
-                          className="inline-flex items-center justify-center w-8 h-8 bg-surface-alt text-accent rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/20 border border-border-subtle"
+                          className="w-8 h-8 rounded-lg bg-surface-alt text-text-placeholder hover:text-accent hover:bg-accent/10 transition-all flex items-center justify-center border border-border-subtle"
                           title="View Details"
                         >
-                          <i className="fas fa-eye text-[13px]"></i>
+                          <i className="fas fa-eye text-[12px]"></i>
                         </button>
                         <button
                           onClick={() => handleEdit(emp)}
-                          className="inline-flex items-center justify-center w-8 h-8 bg-surface-alt text-icon-cyan rounded-lg cursor-pointer transition-all duration-200 hover:bg-icon-cyan/20 border border-border-subtle"
+                          className="w-8 h-8 rounded-lg bg-surface-alt text-text-placeholder hover:text-icon-cyan hover:bg-icon-cyan/10 transition-all flex items-center justify-center border border-border-subtle"
                           title="Edit"
                         >
-                          <i className="fas fa-pen text-[13px]"></i>
+                          <i className="fas fa-pen text-[12px]"></i>
                         </button>
                         <button
                           onClick={() => handleDeletePrompt(emp)}
-                          className="inline-flex items-center justify-center w-8 h-8 bg-surface-alt text-red-500 rounded-lg cursor-pointer transition-all duration-200 hover:bg-red-500/20 hover:text-red-600 border border-border-subtle"
+                          className="w-8 h-8 rounded-lg bg-surface-alt text-text-placeholder hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center border border-border-subtle"
                           title="Delete"
                         >
-                          <i className="fas fa-trash text-[13px]"></i>
+                          <i className="fas fa-trash text-[12px]"></i>
                         </button>
                       </div>
                     </td>
@@ -779,190 +803,102 @@ const SeniorHigh = () => {
           </table>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto mb-4 pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto mb-4 pr-1 custom-scrollbar">
           {paginatedEmployees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 bg-surface border border-border-subtle rounded-[20px] text-text-muted">
-              <i className="fas fa-folder-open text-[32px] mb-3 opacity-50"></i>
-              <p>No employee records found.</p>
+            <div className="flex flex-col items-center justify-center h-64 bg-surface border border-border-subtle rounded-[32px] text-text-muted">
+              <i className="fas fa-users-slash text-4xl mb-4 opacity-20"></i>
+              <p className="text-sm font-bold opacity-60">No personnel found matching your criteria.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginatedEmployees.map((emp, i) => {
-                const fullName = [emp.lastName, emp.firstName, emp.middleName]
-                  .filter(Boolean)
-                  .join(" ");
-                const avatarUrl =
-                  emp.photoUrl ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName + " " + emp.firstName)}&background=random&color=fff&bold=true`;
+                const fullName = [emp.lastName, emp.firstName].join(", ");
+                const avatarUrl = emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName)}&background=random&color=fff&bold=true`;
                 const isOpen = openDropdownIndex === emp.employeeNo;
 
                 return (
                   <div
                     key={emp.employeeNo}
-                    className="bg-surface border border-border-subtle rounded-[20px] p-5 shadow-sm hover:shadow-md hover:border-accent/30 transition-all duration-300 group flex flex-col relative"
+                    className="bg-surface border border-border-subtle rounded-[28px] p-5 shadow-sm hover:shadow-2xl hover:border-accent/40 transition-all duration-500 group flex flex-col relative overflow-hidden stagger-item"
+                    style={{"--delay": `${i * 0.05}s`}}
                   >
-                    {/* Top Row: Avatar & Options */}
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/5 dark:to-white/2 pointer-events-none"></div>
+                    
+                    {/* Header: Photo & Action */}
+                    <div className="flex justify-between items-start mb-5">
                       <div className="relative">
-                        <img
-                          src={avatarUrl}
-                          alt={fullName}
-                          className="w-14 h-14 rounded-full border-2 border-surface object-cover shadow-sm"
-                        />
-                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full"></span>
+                         <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-border-subtle shadow-md group-hover:scale-105 transition-transform duration-500">
+                          <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+                        </div>
+                        <span className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-surface rounded-full ${emp.photoUrl ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                       </div>
 
                       <div className="relative">
                         <button
-                          onClick={() =>
-                            setOpenDropdownIndex(isOpen ? null : emp.employeeNo)
-                          }
-                          onBlur={() =>
-                            setTimeout(() => setOpenDropdownIndex(null), 200)
-                          }
-                          className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-main hover:bg-surface-alt rounded-full transition-colors"
+                          onClick={() => setOpenDropdownIndex(isOpen ? null : emp.employeeNo)}
+                          className="w-9 h-9 flex items-center justify-center text-text-placeholder hover:text-text-main hover:bg-surface-alt rounded-xl border border-transparent hover:border-border-subtle transition-all"
                         >
-                          <i className="fas fa-ellipsis-h"></i>
+                          <i className="fas fa-ellipsis-v text-sm"></i>
                         </button>
 
-                        {/* Dropdown Menu */}
                         {isOpen && (
-                          <div className="absolute right-0 top-10 w-36 bg-surface border border-border-subtle rounded-[12px] shadow-lg overflow-hidden z-20 animate-[fadeIn_0.1s_ease]">
+                          <div className="absolute right-0 top-11 w-44 bg-surface border border-border-subtle rounded-[18px] shadow-2xl overflow-hidden z-20 animate-[slideUp_0.2s_ease-out]">
                             <button
                               onMouseDown={() => handleEdit(emp)}
-                              className="w-full text-left px-4 py-2.5 text-[13px] font-semibold text-text-main hover:bg-surface-alt flex items-center gap-2"
+                              className="w-full text-left px-4 py-3 text-[12px] font-black uppercase tracking-wider text-text-main hover:bg-surface-alt flex items-center gap-3 transition-colors"
                             >
-                              <i className="fas fa-pen text-icon-cyan w-4"></i>{" "}
-                              Edit
-                            </button>
-                            <button
-                              onMouseDown={() => handleView(emp)}
-                              className="w-full text-left px-4 py-2.5 text-[13px] font-semibold text-text-main hover:bg-surface-alt flex items-center gap-2"
-                            >
-                              <i className="fas fa-eye text-accent w-4"></i>{" "}
-                              View
+                              <i className="fas fa-edit text-icon-cyan"></i> Edit Profile
                             </button>
                             <button
                               onMouseDown={() => handleDeletePrompt(emp)}
-                              className="w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-500 hover:bg-red-500/10 flex items-center gap-2 border-t border-border-subtle"
+                              className="w-full text-left px-4 py-3 text-[12px] font-black uppercase tracking-wider text-red-500 hover:bg-red-500/5 flex items-center gap-3 transition-colors border-t border-border-subtle/50"
                             >
-                              <i className="fas fa-trash w-4"></i> Delete
+                              <i className="fas fa-trash-alt"></i> Remove
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Middle: Name & Title */}
-                    <div className="mb-4 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3
-                          className="text-text-main font-extrabold text-[16px] truncate m-0"
-                          title={fullName}
-                        >
-                          {fullName}
-                        </h3>
-                        {(() => {
-                          const missing = [];
-                          if (!emp.photoUrl) missing.push("Photo");
-                          if (!emp.philhealthNo) missing.push("PhilHealth");
-                          if (!emp.tin) missing.push("TIN");
-                          if (!emp.pagibigNo) missing.push("Pag-IBIG");
-
-                          if (missing.length > 0) {
-                            return (
-                              <i
-                                className="fas fa-exclamation-circle text-red-500 text-sm animate-pulse cursor-help"
-                                title={`Missing Requirements: ${missing.join(", ")}`}
-                              ></i>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                      <p className="text-text-muted text-[12px] font-bold mt-0.5 truncate m-0 uppercase tracking-tight">
+                    {/* Info */}
+                    <div className="flex-1 mb-5">
+                      <h3 className="text-text-main font-black text-[17px] truncate tracking-tight m-0 group-hover:text-accent transition-colors" title={fullName}>
+                        {fullName}
+                      </h3>
+                      <p className="text-text-placeholder text-[11px] font-black uppercase tracking-[0.1em] mt-1 opacity-80 truncate">
                         {emp.position}
                       </p>
-                      <div className="flex flex-wrap gap-1.5 mt-3 min-h-[48px] content-start">
-                        <span className="px-2 py-1 rounded-md bg-accent/10 text-accent text-[9px] font-black uppercase tracking-wider border border-accent/20">
+                      
+                      <div className="flex flex-wrap gap-1.5 mt-4">
+                        <span className="px-2.5 py-1 rounded-full bg-accent/5 text-accent text-[9px] font-black uppercase tracking-widest border border-accent/10">
                           {emp.personnelCategory}
                         </span>
-                        <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase tracking-wider border border-blue-500/20">
+                        <span className="px-2.5 py-1 rounded-full bg-surface-alt text-text-muted text-[9px] font-black uppercase tracking-widest border border-border-subtle">
                           {emp.schoolLevel}
                         </span>
-                        <span className="px-2 py-1 rounded-md bg-surface-alt text-text-muted text-[9px] font-black uppercase tracking-wider border border-border-subtle">
-                          {emp.department}
-                        </span>
                       </div>
                     </div>
 
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-3 bg-surface-alt/50 p-4 rounded-[16px] mb-4 text-[12px] border border-border-subtle/50">
-                      <div>
-                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
-                          Emp No
-                        </span>
-                        <span
-                          className="text-text-main font-bold truncate block"
-                          title={emp.employeeNo}
-                        >
-                          {emp.employeeNo}
-                        </span>
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 bg-surface-alt/40 p-4 rounded-[22px] mb-5 border border-border-subtle/50">
+                       <div className="space-y-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-text-placeholder opacity-60">Salary</span>
+                        <div className="text-[14px] font-black text-emerald-400 tracking-tight">{getSalary(emp.salaryGrade, emp.step)}</div>
                       </div>
-                      <div>
-                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
-                          Joined
-                        </span>
-                        <span className="text-text-main font-bold truncate block">
-                          {emp.originalAppointmentDate
-                            ? new Date(
-                              emp.originalAppointmentDate,
-                            ).toLocaleDateString()
-                            : "N/A"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
-                          Gender
-                        </span>
-                        <span
-                          className={`font-black uppercase text-[11px] ${emp.gender === "Male" ? "text-icon-cyan" : emp.gender === "Female" ? "text-icon-pink" : "text-text-main"}`}
-                        >
-                          {emp.gender}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
-                          SG / Step
-                        </span>
-                        <span className="text-accent font-black truncate block uppercase text-[11px]">
-                          {String(emp.salaryGrade).toUpperCase().replace("SG ", "")} / {emp.step}
-                        </span>
-                      </div>
-                      <div className="col-span-2 pt-1">
-                        <span className="text-text-placeholder block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
-                          Monthly Base Salary
-                        </span>
-                        <span className="text-green-500 font-black text-[14px] truncate block tracking-tight">
-                          {getSalary(emp.salaryGrade, emp.step)}
-                        </span>
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-text-placeholder opacity-60">ID Number</span>
+                        <div className="text-[12px] font-black text-text-main opacity-80">{emp.employeeNo}</div>
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="mt-auto pt-4 border-t border-border-subtle flex items-center justify-between gap-2 text-text-muted text-[13px] font-medium">
-                      <div className="flex items-center gap-2 truncate">
-                        <i className="fas fa-phone-alt opacity-70"></i>
-                        <span className="truncate">{emp.contactNo}</span>
-                      </div>
-                      <button
-                        onClick={() => handleView(emp)}
-                        className="shrink-0 text-accent hover:text-accent-hover font-bold text-[12px] flex items-center gap-1.5 transition-colors group/view"
-                      >
-                        View More{" "}
-                        <i className="fas fa-arrow-right text-[10px] transition-transform group-hover/view:translate-x-0.5"></i>
-                      </button>
-                    </div>
+                    {/* Action Bar */}
+                    <button
+                      onClick={() => handleView(emp)}
+                      className="w-full py-3.5 bg-surface-alt border border-border-subtle rounded-2xl text-[11px] font-black uppercase tracking-widest text-text-main hover:bg-accent hover:text-accent-text hover:border-accent transition-all duration-300 flex items-center justify-center gap-2 group/btn shadow-sm"
+                    >
+                      <span>View Profile</span>
+                      <i className="fas fa-chevron-right text-[10px] group-hover/btn:translate-x-1 transition-transform"></i>
+                    </button>
                   </div>
                 );
               })}
@@ -971,43 +907,49 @@ const SeniorHigh = () => {
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {filteredEmployees.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between py-3 px-5 bg-surface border border-border-subtle rounded-[16px] shadow-sm shrink-0 gap-4">
-          <span className="text-text-muted text-[13px] font-medium text-center sm:text-left">
-            Showing {startIndex + 1} to{" "}
-            {Math.min(startIndex + itemsPerPage, filteredEmployees.length)} of{" "}
-            {filteredEmployees.length} employees
-          </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0">
+      {/* Pagination Controls - Premium Refinement */}
+      {filteredEmployees.length > itemsPerPage && (
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-surface border border-border-subtle rounded-[24px] shadow-sm shrink-0 gap-4">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-accent/5 flex items-center justify-center text-accent border border-accent/10">
+               <i className="fas fa-users text-sm"></i>
+             </div>
+             <span className="text-text-muted text-[13px] font-bold">
+               <span className="text-text-main">{filteredEmployees.length}</span> Total Personnel
+             </span>
+          </div>
+          
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface-alt text-text-main text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors shrink-0"
+              className="w-10 h-10 rounded-xl border border-border-subtle bg-surface-alt text-text-main flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover hover:border-accent/30 transition-all"
             >
-              Previous
+              <i className="fas fa-chevron-left text-[12px]"></i>
             </button>
 
-            <div className="flex gap-1.5 shrink-0">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
+            <div className="flex items-center gap-1.5 px-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // Simplified pagination for many pages
+                if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) return null;
+                return (
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-lg text-[13px] font-bold transition-colors ${currentPage === page ? "bg-accent text-accent-text border border-accent shadow-sm" : "border border-border-subtle bg-surface-alt text-text-main hover:bg-surface-hover"}`}
+                    className={`w-10 h-10 rounded-xl text-[13px] font-black transition-all ${currentPage === page ? "bg-accent text-accent-text border border-accent shadow-lg shadow-accent/20" : "border border-border-subtle bg-surface-alt text-text-muted hover:text-text-main hover:border-accent/30"}`}
                   >
                     {page}
                   </button>
-                ),
-              )}
+                );
+              })}
             </div>
 
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface-alt text-text-main text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors shrink-0"
+              className="w-10 h-10 rounded-xl border border-border-subtle bg-surface-alt text-text-main flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover hover:border-accent/30 transition-all"
             >
-              Next
+              <i className="fas fa-chevron-right text-[12px]"></i>
             </button>
           </div>
         </div>
@@ -1523,30 +1465,32 @@ const SeniorHigh = () => {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
             onClick={() => setIsDeleteModalOpen(false)}
           ></div>
-          <div className="relative z-[1000] w-full max-w-[460px] bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300">
-            <div className="p-8">
-              <h2 className="text-text-main text-[24px] mb-3 font-extrabold tracking-tight">
-                Confirm Delete
-              </h2>
-              <p className="text-text-muted text-[15px] leading-relaxed m-0">
-                Are you sure you want to delete this employee? This action
-                cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3 mt-8">
-                <button
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-alt text-text-muted border border-border-subtle rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-surface-hover hover:text-text-main group"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white border border-red-700 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-red-500 hover:-translate-y-0.5 group"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+          <div className="relative z-[1000] w-full max-w-[420px] bg-surface border border-border-subtle rounded-[32px] shadow-2xl animate-[slideIn_0.2s_ease] overflow-hidden">
+             <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-inner">
+                  <i className="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 className="text-text-main text-[24px] mb-3 font-black tracking-tight">
+                  Confirm Deletion
+                </h2>
+                <p className="text-text-muted text-[15px] leading-relaxed m-0 font-medium">
+                  Are you sure you want to remove <span className="text-text-main font-bold">"{employees[deletingIndex]?.lastName}, {employees[deletingIndex]?.firstName}"</span>? This action cannot be undone and will permanently delete the record.
+                </p>
+                <div className="grid grid-cols-2 gap-3 mt-10">
+                  <button
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="py-3.5 bg-surface-alt text-text-main border border-border-subtle rounded-2xl text-[13px] font-black uppercase tracking-widest hover:bg-surface-hover transition-all active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    className="py-3.5 bg-red-600 text-white border border-red-700 rounded-2xl text-[13px] font-black uppercase tracking-widest hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                  >
+                    Delete Now
+                  </button>
+                </div>
+             </div>
           </div>
         </div>
       )}

@@ -271,64 +271,98 @@ const LeaveTracker = () => {
     return `${emp.last_name}, ${emp.first_name}${mid}`;
   };
 
-  // --- Render ---
-  return (
-    <div className="flex flex-col h-full relative animate-[fadeIn_0.4s_ease-out]">
+  const SkeletonLeave = () => (
+    <div className="flex flex-col gap-8 animate-pulse">
+      {/* Summary Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Array(3).fill(0).map((_, i) => (
+          <div key={i} className="bg-surface border border-border-subtle p-8 rounded-[32px] h-[160px]"></div>
+        ))}
+      </div>
+      
+      {/* Search & Filters Skeleton */}
+      <div className="bg-surface border border-border-subtle p-6 rounded-[28px] h-[100px]"></div>
 
-      {/* ── Summary Strip ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 shrink-0">
+      {/* Applications Table Skeleton */}
+      <div className="bg-surface border border-border-subtle rounded-[32px] overflow-hidden">
+        <div className="h-16 bg-surface-alt/50 border-b border-border-subtle"></div>
+        {Array(6).fill(0).map((_, i) => (
+          <div key={i} className="h-20 border-b border-border-subtle flex items-center px-6 gap-6">
+            <div className="w-12 h-12 rounded-full skeleton"></div>
+            <div className="flex-1 h-5 skeleton"></div>
+            <div className="w-32 h-5 skeleton"></div>
+            <div className="w-24 h-8 skeleton rounded-full"></div>
+            <div className="w-20 h-5 skeleton"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (isLoading) return <SkeletonLeave />;
+
+  return (
+    <div className="flex flex-col h-full relative animate-[fadeIn_0.5s_ease-out]">
+
+      {/* ── Summary Strip: Premium Bento Refinement ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 shrink-0">
         {[
           {
             label: "Total Applications",
             value: stats.total,
-            icon: "fa-file-alt",
+            icon: "fa-folder-open",
             color: "text-accent",
             bg: "bg-accent/10",
             border: "border-accent/20",
-            sub: "All time",
+            sub: "Total Files Logged",
             filterValue: "All",
+            glow: "shadow-accent/20"
           },
           {
             label: "Pending Review",
             value: stats.pending,
-            icon: "fa-clock",
+            icon: "fa-hourglass-half",
             color: "text-amber-400",
             bg: "bg-amber-500/10",
             border: "border-amber-500/20",
-            sub: "Awaiting action",
+            sub: "Action Required",
             filterValue: "Pending",
+            glow: "shadow-amber-500/20"
           },
           {
-            label: "Approved This Month",
+            label: "Monthly Approval",
             value: stats.approvedThisMonth,
-            icon: "fa-check-circle",
+            icon: "fa-calendar-check",
             color: "text-emerald-400",
             bg: "bg-emerald-500/10",
             border: "border-emerald-500/20",
-            sub: new Date().toLocaleString("en-PH", { month: "long", year: "numeric" }),
+            sub: "Verified this Month",
             filterValue: "Approved This Month",
+            glow: "shadow-emerald-500/20"
           },
-        ].map((card, i) => {
-          const isActive = statusFilter === card.filterValue;
-          return (
-            <div
-              key={i}
-              onClick={() => setStatusFilter(card.filterValue)}
-              className={`bg-surface border rounded-[20px] p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group flex items-center gap-4 cursor-pointer ${
-                isActive ? "border-accent ring-4 ring-accent/10" : "border-border-subtle"
-              }`}
-            >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${card.bg} ${card.border} transition-transform group-hover:scale-110`}>
-                <i className={`fas ${card.icon} text-lg ${card.color}`}></i>
+        ].map((card, idx) => (
+          <button
+            key={card.label}
+            onClick={() => setStatusFilter(card.filterValue)}
+            className={`group text-left bg-surface border ${statusFilter === card.filterValue ? 'border-accent shadow-lg ' + card.glow : 'border-border-subtle hover:border-accent/40'} p-8 rounded-[32px] transition-all duration-500 relative overflow-hidden stagger-item`}
+            style={{"--delay": `${idx * 0.1}s`}}
+          >
+            <div className={`absolute top-0 right-0 w-32 h-32 ${card.bg} rounded-full blur-[60px] translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 transition-opacity duration-700`}></div>
+            
+            <div className="flex flex-col gap-4 relative z-10">
+              <div className="flex items-center justify-between">
+                <div className={`w-12 h-12 rounded-2xl ${card.bg} ${card.color} flex items-center justify-center text-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6`}>
+                  <i className={`fas ${card.icon}`}></i>
+                </div>
+                <div className="text-3xl font-black text-text-main tracking-tighter group-hover:scale-110 transition-transform">{card.value}</div>
               </div>
-              <div>
-                <p className="text-text-placeholder text-[10px] font-black uppercase tracking-widest m-0">{card.label}</p>
-                <h3 className={`text-3xl font-black m-0 ${card.color}`}>{card.value}</h3>
-                <p className="text-text-placeholder text-[11px] font-medium m-0">{card.sub}</p>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider m-0">{card.label}</span>
+                <span className="text-[10px] font-medium text-text-placeholder m-0">{card.sub}</span>
               </div>
             </div>
-          );
-        })}
+          </button>
+        ))}
       </div>
 
       {/* ── Filter Bar ── */}
