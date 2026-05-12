@@ -1,4 +1,5 @@
 import React from "react";
+import * as XLSX from "xlsx";
 
 const STATUS_CONFIG = {
   Pending: {
@@ -56,6 +57,63 @@ const LeaveViewModal = ({ isOpen, record, onClose }) => {
     });
   };
 
+  const handleExportExcel = () => {
+    const data = [
+      ["LEAVE APPLICATION - CSC FORM NO. 6"],
+      [""],
+      ["EMPLOYEE INFORMATION"],
+      ["Full Name", fullName],
+      ["Position", emp?.position || "—"],
+      ["Office/Department", emp?.department || "—"],
+      [""],
+      ["DETAILS OF APPLICATION"],
+      ["Date of Filing", formatDate(record.date_of_filing)],
+      ["Type of Leave", record.type_of_leave],
+      ["Other Purpose", record.other_leave_purpose || "N/A"],
+      ["Inclusive Dates", record.inclusive_dates],
+      ["Working Days", record.working_days],
+      ["Commutation", record.commutation_requested ? "Requested" : "Not Requested"],
+      [""],
+      ["SPECIFIC DETAILS"],
+      ["Vacation Location", record.vacation_location || "N/A"],
+      ["Vacation Destination", record.vacation_abroad_dest || "N/A"],
+      ["Sick Leave Type", record.sick_leave_type || "N/A"],
+      ["Illness Details", record.sick_leave_illness || record.women_leave_illness || "N/A"],
+      ["Study Leave Type", record.study_leave_type || "N/A"],
+      [""],
+      ["CERTIFICATION & RECOMMENDATION"],
+      ["Status", record.status],
+      ["HR Certification Date", formatDate(record.as_of_date)],
+      ["VL Balance", record.vl_balance],
+      ["SL Balance", record.sl_balance],
+      ["Recommendation", record.recommendation || "N/A"],
+      ["Recommending Officer", record.recommending_officer_name || "N/A"],
+      [""],
+      ["FINAL ACTION"],
+      ["Approved Days with Pay", record.days_with_pay || 0],
+      ["Approved Days without Pay", record.days_without_pay || 0],
+      ["Other Approval Notes", record.days_others || "N/A"],
+      ["Disapproval Reason", record.disapproval_reason || "N/A"],
+      ["Approving Officer", record.approving_officer_name || "N/A"],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    // Auto-width columns
+    const colWidths = data.reduce((acc, row) => {
+      row.forEach((cell, i) => {
+        const len = cell ? cell.toString().length : 0;
+        acc[i] = Math.max(acc[i] || 0, len);
+      });
+      return acc;
+    }, []);
+    ws["!cols"] = colWidths.map(w => ({ wch: w + 5 }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Leave Application");
+    XLSX.writeFile(wb, `Leave_App_${emp?.last_name || "Record"}_${record.id.slice(0, 8)}.xlsx`);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-surface rounded-[24px] shadow-2xl w-full max-w-4xl max-h-[95vh] border border-border-subtle animate-[slideUp_0.3s_ease-out] flex flex-col overflow-hidden">
@@ -88,7 +146,7 @@ const LeaveViewModal = ({ isOpen, record, onClose }) => {
                 <p className="text-[15px] font-black m-0">{record.status}</p>
               </div>
             </div>
-            
+
             <div className="bg-surface-alt/40 border border-border-subtle rounded-2xl px-4 py-3 flex items-center gap-4 md:col-span-2">
               <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-[12px] font-black text-accent shrink-0">
                 {emp?.last_name?.[0]}{emp?.first_name?.[0]}
@@ -101,7 +159,7 @@ const LeaveViewModal = ({ isOpen, record, onClose }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
+
             {/* Left: Application Details (Section 6) */}
             <div className="flex flex-col gap-6">
               <div className="bg-surface-alt/20 border border-border-subtle rounded-2xl p-5">
@@ -242,12 +300,18 @@ const LeaveViewModal = ({ isOpen, record, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border-subtle bg-surface-alt flex justify-end shrink-0">
+        <div className="px-6 py-4 border-t border-border-subtle bg-surface-alt flex justify-end gap-3 shrink-0">
+          <button
+            onClick={handleExportExcel}
+            className="px-6 py-2.5 rounded-xl font-bold text-[14px] border border-emerald-600 bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 transition-all cursor-pointer shadow-sm flex items-center gap-2"
+          >
+            <i className="fas fa-file-excel"></i> Export to Excel
+          </button>
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl font-bold text-[14px] border border-border-subtle bg-surface text-text-muted hover:bg-surface-hover transition-all cursor-pointer shadow-sm"
           >
-            Close Application View
+            Close
           </button>
         </div>
 

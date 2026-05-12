@@ -7,7 +7,7 @@ const LEAVE_TYPES = [
   "Vacation Leave","Mandatory/Forced Leave","Sick Leave","Maternity Leave",
   "Paternity Leave","Special Privilege Leave","Solo Parent Leave","Study Leave",
   "10-Day VAWC Leave","Rehabilitation Privilege","Special Leave Benefits for Women",
-  "Special Emergency (Calamity) Leave","Adoption Leave","Others",
+  "Special Emergency (Calamity) Leave","Wellness Leave","Adoption Leave","Others",
 ];
 
 const inputCls = "w-full bg-surface border border-border-subtle text-text-main text-[13px] font-medium rounded-xl px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder";
@@ -62,7 +62,6 @@ const LeaveFormModal = ({ isOpen, onClose, onSuccess }) => {
     sick_leave_type: "", sick_leave_illness: "",
     women_leave_illness: "", study_leave_type: "",
     start_date: "", end_date: "", working_days: "", inclusive_dates: "",
-    commutation: "Not Requested",
   };
   const [form, setForm] = useState(blank);
 
@@ -119,7 +118,7 @@ const LeaveFormModal = ({ isOpen, onClose, onSuccess }) => {
         end_date: form.end_date,
         working_days: Number(form.working_days),
         inclusive_dates: form.inclusive_dates,
-        commutation_requested: form.commutation === "Requested",
+        commutation_requested: false,
         status: "Pending",
       }]);
       if (error) throw error;
@@ -301,15 +300,6 @@ const LeaveFormModal = ({ isOpen, onClose, onSuccess }) => {
                 <F label="Inclusive Dates">
                   <div className={readonlyCls}>{form.inclusive_dates || <span className="text-text-placeholder italic">Auto-computed</span>}</div>
                 </F>
-              </div>
-            </div>
-
-            {/* ── Section 6.D: Commutation ── */}
-            <div className="bg-surface-alt/30 border border-border-subtle p-5 rounded-2xl">
-              <SecHeader num="6.D" label="Commutation" />
-              <div className="flex flex-col gap-2">
-                <Radio name="commutation" value="Not Requested" checked={form.commutation === "Not Requested"} onChange={e => set("commutation", e.target.value)} label="Not Requested" />
-                <Radio name="commutation" value="Requested" checked={form.commutation === "Requested"} onChange={e => set("commutation", e.target.value)} label="Requested" />
               </div>
             </div>
 

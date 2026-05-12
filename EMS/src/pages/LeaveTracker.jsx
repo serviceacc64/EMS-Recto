@@ -18,6 +18,7 @@ const LEAVE_TYPES_FILTER = [
   "Rehabilitation Privilege",
   "Special Leave Benefits for Women",
   "Special Emergency (Calamity) Leave",
+  "Wellness Leave",
   "Adoption Leave",
   "Others",
 ];
@@ -113,7 +114,13 @@ const LeaveTracker = () => {
       a.type_of_leave.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (a.employees?.employee_no || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus =
-      statusFilter === "All" || a.status === statusFilter;
+      statusFilter === "All"
+        ? true
+        : statusFilter === "Approved This Month"
+        ? a.status === "Approved" &&
+          new Date(a.date_of_filing).getMonth() === currentMonth &&
+          new Date(a.date_of_filing).getFullYear() === currentYear
+        : a.status === statusFilter;
     const matchType =
       typeFilter === "All Types" || a.type_of_leave === typeFilter;
     return matchSearch && matchStatus && matchType;
@@ -132,7 +139,7 @@ const LeaveTracker = () => {
   // --- Status Update ---
   const handleStatusUpdate = async (id, updates) => {
     const isApproving = updates.status === "Approved";
-    
+
     // If approving, we need to handle the balance deduction logic
     if (isApproving) {
       const { data: app, error: fetchErr } = await supabase
@@ -140,7 +147,7 @@ const LeaveTracker = () => {
         .select("working_days, employee_id")
         .eq("id", id)
         .single();
-        
+
       if (fetchErr || !app) {
         console.error("Error fetching application for deduction:", fetchErr);
         alert("Failed to process deduction: Application not found.");
@@ -192,7 +199,7 @@ const LeaveTracker = () => {
       // Add the deduction info to the updates object for Section 7.D (Others)
       if (localDeduct > 0 || doDeduct > 0) {
         const deductionMsg = `[Auto-Deducted: ${Number(localDeduct)} from Local, ${Number(doDeduct)} from D.O.]`;
-        updates.days_others = updates.days_others 
+        updates.days_others = updates.days_others
           ? `${updates.days_others} ${deductionMsg}`
           : deductionMsg;
       }
@@ -202,7 +209,7 @@ const LeaveTracker = () => {
       .from("leave_applications")
       .update(updates)
       .eq("id", id);
-      
+
     if (error) {
       console.error("Status update error:", error);
       alert("Failed to update status: " + error.message);
@@ -268,22 +275,6 @@ const LeaveTracker = () => {
   return (
     <div className="flex flex-col h-full relative animate-[fadeIn_0.4s_ease-out]">
 
-      {/* ── Page Header ── */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6 shrink-0">
-        <div>
-          <h1 className="text-2xl font-black text-text-main m-0">Leave Tracker</h1>
-          <p className="text-sm font-medium text-text-muted mt-1">
-            Manage and review personnel leave applications
-          </p>
-        </div>
-        <button
-          onClick={() => setIsFileModalOpen(true)}
-          className="inline-flex justify-center items-center gap-2 bg-emerald-500 text-white border border-emerald-600 px-5 py-2.5 rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-emerald-600 hover:scale-105 hover:shadow-md shrink-0"
-        >
-          <i className="fas fa-file-signature"></i> File Leave Application
-        </button>
-      </div>
-
       {/* ── Summary Strip ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 shrink-0">
         {[
@@ -295,6 +286,7 @@ const LeaveTracker = () => {
             bg: "bg-accent/10",
             border: "border-accent/20",
             sub: "All time",
+            filterValue: "All",
           },
           {
             label: "Pending Review",
@@ -304,6 +296,7 @@ const LeaveTracker = () => {
             bg: "bg-amber-500/10",
             border: "border-amber-500/20",
             sub: "Awaiting action",
+            filterValue: "Pending",
           },
           {
             label: "Approved This Month",
@@ -313,22 +306,29 @@ const LeaveTracker = () => {
             bg: "bg-emerald-500/10",
             border: "border-emerald-500/20",
             sub: new Date().toLocaleString("en-PH", { month: "long", year: "numeric" }),
+            filterValue: "Approved This Month",
           },
-        ].map((card, i) => (
-          <div
-            key={i}
-            className="bg-surface border border-border-subtle rounded-[20px] p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group flex items-center gap-4"
-          >
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${card.bg} ${card.border} transition-transform group-hover:scale-110`}>
-              <i className={`fas ${card.icon} text-lg ${card.color}`}></i>
+        ].map((card, i) => {
+          const isActive = statusFilter === card.filterValue;
+          return (
+            <div
+              key={i}
+              onClick={() => setStatusFilter(card.filterValue)}
+              className={`bg-surface border rounded-[20px] p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group flex items-center gap-4 cursor-pointer ${
+                isActive ? "border-accent ring-4 ring-accent/10" : "border-border-subtle"
+              }`}
+            >
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${card.bg} ${card.border} transition-transform group-hover:scale-110`}>
+                <i className={`fas ${card.icon} text-lg ${card.color}`}></i>
+              </div>
+              <div>
+                <p className="text-text-placeholder text-[10px] font-black uppercase tracking-widest m-0">{card.label}</p>
+                <h3 className={`text-3xl font-black m-0 ${card.color}`}>{card.value}</h3>
+                <p className="text-text-placeholder text-[11px] font-medium m-0">{card.sub}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-text-placeholder text-[10px] font-black uppercase tracking-widest m-0">{card.label}</p>
-              <h3 className={`text-3xl font-black m-0 ${card.color}`}>{card.value}</h3>
-              <p className="text-text-placeholder text-[11px] font-medium m-0">{card.sub}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── Filter Bar ── */}
@@ -359,7 +359,7 @@ const LeaveTracker = () => {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-surface border border-border-subtle text-text-main text-[13px] font-bold rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
         >
-          {["All", "Pending", "Approved", "Rejected"].map((s) => (
+          {["All", "Pending", "Approved", "Rejected", "Approved This Month"].map((s) => (
             <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
           ))}
         </select>
@@ -374,6 +374,13 @@ const LeaveTracker = () => {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
+
+        <button
+          onClick={() => setIsFileModalOpen(true)}
+          className="inline-flex justify-center items-center gap-2 bg-emerald-500 text-white border border-emerald-600 px-5 py-2.5 rounded-[12px] cursor-pointer text-[13px] font-semibold transition-all duration-200 shadow-sm hover:bg-emerald-600 hover:scale-105 hover:shadow-md shrink-0 sm:ml-auto"
+        >
+          <i className="fas fa-file-signature"></i> File Leave Application
+        </button>
       </div>
 
       {/* ── Table / States ── */}
@@ -578,11 +585,10 @@ const LeaveTracker = () => {
                       <button
                         key={p}
                         onClick={() => setCurrentPage(p)}
-                        className={`w-9 h-9 rounded-xl border text-[13px] font-bold flex items-center justify-center transition-all cursor-pointer ${
-                          currentPage === p
-                            ? "bg-accent border-accent text-accent-text shadow-sm"
-                            : "border-border-subtle bg-surface text-text-muted hover:bg-surface-hover"
-                        }`}
+                        className={`w-9 h-9 rounded-xl border text-[13px] font-bold flex items-center justify-center transition-all cursor-pointer ${currentPage === p
+                          ? "bg-accent border-accent text-accent-text shadow-sm"
+                          : "border-border-subtle bg-surface text-text-muted hover:bg-surface-hover"
+                          }`}
                       >
                         {p}
                       </button>

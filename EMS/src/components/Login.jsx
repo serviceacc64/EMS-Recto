@@ -1,36 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../context/AuthContext";
+import PublicResultModal from "./PublicResultModal";
 
 const Login = () => {
   const navigate = useNavigate();
   const { showToast } = useNotifications();
+  const { user, isAdmin } = useAuth();
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (user && isAdmin) {
+      navigate("/dashboard");
+    }
+  }, [user, isAdmin, navigate]);
+  
+  // Tabs: 'inquiry' or 'admin'
+  const [activeTab, setActiveTab] = useState("inquiry");
+  
+  // Admin Login State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Inquiry State
+  const [empNo, setEmpNo] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [isInquiring, setIsInquiring] = useState(false);
+  const [inquiryResult, setInquiryResult] = useState(null);
+  const [showResultModal, setShowResultModal] = useState(false);
 
-    // Validation
+  const handleAdminSubmit = async (e) => {
+    e.preventDefault();
     if (!email || !password) {
       showToast("Please enter both email and password", "error");
       return;
     }
-
     setIsLoading(true);
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
-
     setIsLoading(false);
-
     if (error) {
       showToast(error.message, "error");
     } else {
@@ -39,110 +53,208 @@ const Login = () => {
     }
   };
 
+  const handleInquirySubmit = async (e) => {
+    e.preventDefault();
+    if (!empNo || !lastName) {
+      showToast("Please enter both Employee No. and Last Name", "warning");
+      return;
+    }
+    setIsInquiring(true);
+    try {
+      const { data, error } = await supabase.rpc("get_public_personnel_data", {
+        p_emp_no: empNo.trim(),
+        p_last_name: lastName.trim()
+      });
+
+      if (error) throw error;
+
+      if (!data) {
+        showToast("No record found. Please check your credentials.", "error");
+      } else {
+        setInquiryResult(data);
+        setShowResultModal(true);
+      }
+    } catch (err) {
+      console.error("Inquiry error:", err);
+      showToast("An error occurred during inquiry.", "error");
+    } finally {
+      setIsInquiring(false);
+    }
+  };
+
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4 md:p-8">
-      <div className="w-full max-w-[440px] bg-surface/90 border border-border-subtle rounded-[28px] shadow-2xl p-8 md:p-12 animate-[slideIn_0.6s_cubic-bezier(0.16,1,0.3,1)] backdrop-blur-2xl transition-colors duration-300">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-[60px] h-[60px] rounded-[20px] bg-surface-alt border border-accent/20 text-accent mb-6 shadow-md transition-transform duration-300 hover:scale-105">
-            <i className="fas fa-users-cog text-[24px]"></i>
+    <div className="w-full min-h-screen flex items-center justify-center p-4 md:p-8 bg-surface-alt/30 relative overflow-hidden">
+      {/* Background Decorations */}
+      <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-icon-cyan/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+      <div className="w-full max-w-[480px] relative z-10">
+        {/* Header */}
+        <div className="text-center mb-10 animate-[fadeIn_0.6s_ease-out]">
+          <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-[24px] bg-surface border border-border-subtle text-accent mb-6 shadow-xl transition-transform duration-500 hover:scale-105 hover:rotate-3">
+            <i className="fas fa-university text-[28px]"></i>
           </div>
-          <h1 className="text-text-main text-[32px] mb-2 font-extrabold tracking-tight leading-tight">
-            Welcome Back
+          <h1 className="text-text-main text-[36px] mb-2 font-black tracking-tight leading-tight">
+            EMS-Recto
           </h1>
-          <p className="text-text-muted text-[15px] font-medium">
-            Employee Management System
+          <p className="text-text-muted text-[16px] font-bold uppercase tracking-[0.2em] opacity-70">
+            Personnel Information System
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <div className="flex flex-col">
-            <label
-              htmlFor="email"
-              className="text-text-muted font-semibold mb-2 text-[13px] uppercase tracking-wider"
-            >
-              Email
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <i className="fas fa-envelope text-text-placeholder"></i>
-              </div>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="Enter your admin email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full py-3.5 pl-11 pr-4 border border-border-subtle rounded-[16px] text-[15px] transition-all duration-300 bg-surface-alt/60 text-text-main focus:bg-surface-alt focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-medium"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <label
-                htmlFor="password"
-                className="text-text-muted font-semibold text-[13px] uppercase tracking-wider"
-              >
-                Password
-              </label>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <i className="fas fa-lock text-text-placeholder"></i>
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                placeholder="Enter your password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full py-3.5 pl-11 pr-12 border border-border-subtle rounded-[16px] text-[15px] transition-all duration-300 bg-surface-alt/60 text-text-main focus:bg-surface-alt focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-medium"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-placeholder hover:text-accent transition-colors"
-              >
-                <i
-                  className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}
-                ></i>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center pt-2">
-            <input
-              type="checkbox"
-              id="remember"
-              name="remember"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="w-5 h-5 border border-border-subtle rounded-[6px] cursor-pointer accent-accent bg-surface-alt transition-all"
-            />
-            <label
-              htmlFor="remember"
-              className="ml-3 font-medium cursor-pointer text-[14px] text-text-muted select-none"
-            >
-              Remember me for 30 days
-            </label>
-          </div>
-
+        {/* Tab Switcher */}
+        <div className="flex p-1.5 bg-surface border border-border-subtle rounded-[20px] mb-8 shadow-sm">
           <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full mt-4 py-4 bg-accent text-accent-text rounded-[16px] text-[16px] font-bold cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-1 hover:shadow-lg hover:bg-accent-hover active:translate-y-0 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-wait"
+            onClick={() => setActiveTab("inquiry")}
+            className={`flex-1 py-3 text-[14px] font-black uppercase tracking-wider rounded-[14px] transition-all duration-300 ${
+              activeTab === "inquiry"
+                ? "bg-accent text-accent-text shadow-md"
+                : "text-text-placeholder hover:text-text-main"
+            }`}
           >
-            {isLoading ? "Signing In..." : "Sign In to Dashboard"}
-            {!isLoading && (
-              <i className="fas fa-arrow-right text-[14px] transition-transform duration-300 group-hover:translate-x-1 opacity-80"></i>
-            )}
+            <i className="fas fa-search mr-2"></i> Inquiry
           </button>
-        </form>
+          <button
+            onClick={() => setActiveTab("admin")}
+            className={`flex-1 py-3 text-[14px] font-black uppercase tracking-wider rounded-[14px] transition-all duration-300 ${
+              activeTab === "admin"
+                ? "bg-accent text-accent-text shadow-md"
+                : "text-text-placeholder hover:text-text-main"
+            }`}
+          >
+            <i className="fas fa-user-shield mr-2"></i> Admin Portal
+          </button>
+        </div>
+
+        <div className="bg-surface/90 border border-border-subtle rounded-[32px] shadow-2xl p-8 md:p-10 backdrop-blur-2xl transition-all duration-500 hover:shadow-accent/5 animate-[slideIn_0.6s_cubic-bezier(0.16,1,0.3,1)]">
+          {activeTab === "inquiry" ? (
+            /* Inquiry Form */
+            <div className="animate-[fadeIn_0.4s_ease-out]">
+              <div className="mb-8">
+                <h2 className="text-text-main text-[24px] font-black mb-2">Personnel Inquiry</h2>
+                <p className="text-text-muted text-[14px] font-medium">Verify your record and leave application status.</p>
+              </div>
+
+              <form onSubmit={handleInquirySubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col">
+                  <label className="text-text-muted font-black mb-2 text-[11px] uppercase tracking-widest">Employee Number</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-placeholder group-focus-within:text-accent transition-colors">
+                      <i className="fas fa-id-card"></i>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g., EMS-2026-001"
+                      value={empNo}
+                      onChange={(e) => setEmpNo(e.target.value)}
+                      className="w-full py-4 pl-11 pr-4 border border-border-subtle rounded-[18px] text-[15px] transition-all duration-300 bg-surface-alt/40 text-text-main focus:bg-surface focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-text-muted font-black mb-2 text-[11px] uppercase tracking-widest">Last Name</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-placeholder group-focus-within:text-accent transition-colors">
+                      <i className="fas fa-user"></i>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Enter your last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full py-4 pl-11 pr-4 border border-border-subtle rounded-[18px] text-[15px] transition-all duration-300 bg-surface-alt/40 text-text-main focus:bg-surface focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-bold"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isInquiring}
+                  className="w-full mt-4 py-4 bg-accent text-accent-text rounded-[18px] text-[16px] font-black cursor-pointer transition-all duration-300 shadow-lg hover:-translate-y-1 hover:shadow-accent/20 hover:bg-accent-hover active:translate-y-0 flex items-center justify-center gap-2 group disabled:opacity-70"
+                >
+                  {isInquiring ? "Searching..." : "Verify Identity"}
+                  {!isInquiring && <i className="fas fa-search text-[14px] transition-transform group-hover:scale-110"></i>}
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* Admin Portal Form */
+            <div className="animate-[fadeIn_0.4s_ease-out]">
+              <div className="mb-8">
+                <h2 className="text-text-main text-[24px] font-black mb-2">Admin Portal</h2>
+                <p className="text-text-muted text-[14px] font-medium">Access system dashboard and management tools.</p>
+              </div>
+
+              <form onSubmit={handleAdminSubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col">
+                  <label className="text-text-muted font-black mb-2 text-[11px] uppercase tracking-widest">Email Address</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-placeholder group-focus-within:text-accent transition-colors">
+                      <i className="fas fa-envelope"></i>
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="admin@ems.gov"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full py-4 pl-11 pr-4 border border-border-subtle rounded-[18px] text-[15px] transition-all duration-300 bg-surface-alt/40 text-text-main focus:bg-surface focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-text-muted font-black text-[11px] uppercase tracking-widest">Password</label>
+                  </div>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-placeholder group-focus-within:text-accent transition-colors">
+                      <i className="fas fa-lock"></i>
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full py-4 pl-11 pr-12 border border-border-subtle rounded-[18px] text-[15px] transition-all duration-300 bg-surface-alt/40 text-text-main focus:bg-surface focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 placeholder:text-text-placeholder font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-placeholder hover:text-accent transition-colors"
+                    >
+                      <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full mt-4 py-4 bg-accent text-accent-text rounded-[18px] text-[16px] font-black cursor-pointer transition-all duration-300 shadow-lg hover:-translate-y-1 hover:shadow-accent/20 hover:bg-accent-hover active:translate-y-0 flex items-center justify-center gap-2 group disabled:opacity-70"
+                >
+                  {isLoading ? "Signing In..." : "Login to System"}
+                  {!isLoading && <i className="fas fa-arrow-right text-[14px] transition-transform group-hover:translate-x-1"></i>}
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer info */}
+        <div className="text-center mt-10 animate-[fadeIn_1s_ease-out]">
+          <p className="text-text-placeholder text-[11px] font-black uppercase tracking-[0.2em]">
+            © 2026 EMS-Recto Institutional Systems
+          </p>
+        </div>
       </div>
+
+      {/* Result Modal */}
+      <PublicResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        data={inquiryResult}
+      />
     </div>
   );
 };

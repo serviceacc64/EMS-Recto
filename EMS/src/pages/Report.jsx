@@ -4,6 +4,7 @@ import { getSalary } from "../lib/salaryData";
 
 const Report = () => {
   const [employees, setEmployees] = useState([]);
+  const [leaves, setLeaves] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters State
@@ -74,6 +75,12 @@ const Report = () => {
       console.error("Error fetching analytics data:", error);
     } else {
       setEmployees(data || []);
+      
+      // Fetch Leave Data
+      const { data: leaveData } = await supabase
+        .from("leave_applications")
+        .select("*, employees(department, position, school_level)");
+      setLeaves(leaveData || []);
     }
     setIsLoading(false);
   };
@@ -264,8 +271,92 @@ const Report = () => {
         })
         .map(([name, count]) => ({ name, count })),
       total: filteredData.length,
+
+      // --- New Advanced Metrics ---
+      
+      // F. Salary Forecasting
+      salary: (() => {
+        let totalMonthly = 0;
+        const brackets = { "Below 30k": 0, "30k-40k": 0, "40k-50k": 0, "50k+": 0 };
+        
+        filteredData.forEach(emp => {
+          const salaryStr = getSalary(emp.salary_grade, emp.step) || "0";
+          const salaryNum = parseInt(salaryStr.replace(/[^\d]/g, "")) || 0;
+          totalMonthly += salaryNum;
+          
+          if (salaryNum < 30000) brackets["Below 30k"]++;
+          else if (salaryNum < 40000) brackets["30k-40k"]++;
+          else if (salaryNum < 50000) brackets["40k-50k"]++;
+          else brackets["50k+"]++;
+        });
+        
+        return {
+          totalMonthly,
+          brackets: Object.entries(brackets).map(([name, count]) => ({ name, count }))
+        };
+      })(),
+
+      // G. Leave Utilization
+      leave: (() => {
+        const filteredEmpIds = new Set(filteredData.map(e => e.id));
+        const filteredLeaves = leaves.filter(l => filteredEmpIds.has(l.employee_id));
+        
+        const typeCounts = {};
+        const monthlyTrends = Array(12).fill(0);
+        
+        filteredLeaves.forEach(l => {
+          typeCounts[l.type_of_leave] = (typeCounts[l.type_of_leave] || 0) + 1;
+          const month = new Date(l.date_of_filing).getMonth();
+          monthlyTrends[month]++;
+        });
+        
+        return {
+          total: filteredLeaves.length,
+          types: Object.entries(typeCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name, count]) => ({ name, count })),
+          trends: monthlyTrends.map((count, i) => ({ 
+            month: new Date(0, i).toLocaleString('default', { month: 'short' }), 
+            count 
+          }))
+        };
+      })(),
+
+      // H. Career Velocity
+      career: (() => {
+        let totalVelocity = 0;
+        let countWithPromotion = 0;
+        let stagnantCount = 0;
+        const now = new Date();
+
+        filteredData.forEach(emp => {
+          if (emp.original_appointment_date && emp.last_promotion_date) {
+            const start = new Date(emp.original_appointment_date);
+            const last = new Date(emp.last_promotion_date);
+            const years = (last - start) / (1000 * 60 * 60 * 24 * 365.25);
+            if (years > 0) {
+              totalVelocity += years;
+              countWithPromotion++;
+            }
+          }
+          
+          // Stagnancy check (no promotion in 5 years)
+          const baseDate = emp.last_promotion_date || emp.original_appointment_date;
+          if (baseDate) {
+            const yearsSince = (now - new Date(baseDate)) / (1000 * 60 * 60 * 24 * 365.25);
+            if (yearsSince >= 5) stagnantCount++;
+          }
+        });
+
+        return {
+          avgYearsToPromote: countWithPromotion > 0 ? (totalVelocity / countWithPromotion).toFixed(1) : "N/A",
+          stagnantCount,
+          stagnantPercent: filteredData.length > 0 ? Math.round((stagnantCount / filteredData.length) * 100) : 0
+        };
+      })()
     };
-  }, [filteredData]);
+  }, [filteredData, leaves]);
 
   // 3. Export to Styled Excel Logic (SpreadsheetML)
   const downloadExcel = () => {
@@ -1076,6 +1167,136 @@ const Report = () => {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* F. Financial Overview & Salary Forecasting */}
+          <div className="lg:col-span-2 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-emerald-400 to-teal-500"></div>
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">Financial Forecasting</h3>
+                <p className="text-text-muted text-sm font-medium m-0">Monthly payroll estimation</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest m-0">Total Monthly Est.</p>
+                <p className="text-2xl font-black text-green-500 m-0">
+                  ₱{metrics?.salary.totalMonthly.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1">
+              {/* Salary Brackets */}
+              <div className="flex flex-col gap-4 justify-center">
+                {metrics?.salary.brackets.map((bracket, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-[11px] font-bold uppercase tracking-tight">
+                      <span className="text-text-main">{bracket.name}</span>
+                      <span className="text-text-placeholder">{bracket.count} Personnel</span>
+                    </div>
+                    <div className="h-2 bg-surface-alt rounded-full overflow-hidden border border-border-subtle">
+                      <div 
+                        className="h-full bg-green-500 rounded-full transition-all duration-1000"
+                        style={{ width: `${(bracket.count / metrics.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Annual Projection Card */}
+              <div className="bg-surface-alt/50 border border-border-subtle p-6 rounded-3xl flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-4">
+                  <i className="fas fa-chart-pie text-xl"></i>
+                </div>
+                <h4 className="text-[11px] font-black text-text-placeholder uppercase tracking-[0.2em] mb-2">Annual Projection</h4>
+                <p className="text-3xl font-black text-text-main m-0">₱{(metrics?.salary.totalMonthly * 12).toLocaleString()}</p>
+                <p className="text-[10px] font-medium text-text-muted mt-2">Based on current personnel SG/Step</p>
+              </div>
+            </div>
+          </div>
+
+          {/* G. Leave Intelligence */}
+          <div className="lg:col-span-1 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-[50px] rounded-full"></div>
+            <h3 className="text-text-main font-bold text-xl m-0 tracking-tight mb-1">Leave Intelligence</h3>
+            <p className="text-text-muted text-sm font-medium mb-8">Utilization patterns</p>
+
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Monthly Trend Sparkline-like bars */}
+              <div>
+                <h4 className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mb-4">12-Month Trend</h4>
+                <div className="flex items-end gap-1 h-20 px-1">
+                  {metrics?.leave.trends.map((t, i) => (
+                    <div 
+                      key={i} 
+                      className="flex-1 bg-amber-500/20 rounded-t-sm hover:bg-amber-500 transition-all cursor-help relative group"
+                      style={{ height: `${(t.count / (Math.max(...metrics.leave.trends.map(x => x.count)) || 1)) * 100}%` }}
+                    >
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface border border-border-subtle px-2 py-1 rounded text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
+                        {t.month}: {t.count}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top Leave Types */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mb-2">Top Leave Types</h4>
+                {metrics?.leave.types.map((type, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-[11px] font-bold text-text-main flex-1 truncate">{type.name}</span>
+                    <span className="text-[11px] font-black text-amber-500">{type.count}</span>
+                    <div className="w-16 h-1 bg-surface-alt rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500" style={{ width: `${(type.count / metrics.leave.total) * 100}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* H. Career Mobility & Velocity */}
+          <div className="lg:col-span-3 bg-surface border border-border-subtle p-8 rounded-[32px] shadow-sm flex flex-col relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--accent-primary-05),transparent)] pointer-events-none"></div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+              <div>
+                <h3 className="text-text-main font-bold text-xl m-0 tracking-tight">Career Mobility</h3>
+                <p className="text-text-muted text-sm font-medium m-0">Promotion speed & workforce stagnation</p>
+              </div>
+              <div className="flex gap-4">
+                <div className="bg-surface-alt/80 border border-border-subtle p-4 rounded-2xl text-center min-w-[140px]">
+                  <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest m-0">Avg. Yrs to Promote</p>
+                  <p className="text-2xl font-black text-accent m-0">{metrics?.career.avgYearsToPromote}</p>
+                </div>
+                <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-2xl text-center min-w-[140px]">
+                  <p className="text-[10px] font-black text-rose-500/70 uppercase tracking-widest m-0">Stagnation (5yr+)</p>
+                  <p className="text-2xl font-black text-rose-500 m-0">{metrics?.career.stagnantCount}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6 p-6 bg-surface-alt/30 border border-border-subtle rounded-[24px]">
+              <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-2xl shrink-0">
+                <i className="fas fa-rocket"></i>
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-end mb-2">
+                  <h4 className="text-[13px] font-black text-text-main uppercase tracking-tight">Workforce Vitality Score</h4>
+                  <span className="text-accent font-black text-lg">{100 - metrics?.career.stagnantPercent}%</span>
+                </div>
+                <div className="h-3 bg-surface rounded-full overflow-hidden border border-border-subtle shadow-inner">
+                  <div 
+                    className="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-accent transition-all duration-1500 ease-out"
+                    style={{ width: `${100 - metrics?.career.stagnantPercent}%` }}
+                  ></div>
+                </div>
+                <p className="text-[10px] font-medium text-text-muted mt-2">
+                  {metrics?.career.stagnantPercent}% of filtered personnel have not had a grade/step movement in over 5 years.
+                </p>
+              </div>
             </div>
           </div>
         </div>

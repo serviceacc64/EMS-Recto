@@ -114,6 +114,8 @@ const SeniorHigh = () => {
     department: "",
     personnelCategory: "",
     schoolLevel: "Senior High",
+    localLeaveBalance: 0,
+    doLeaveBalance: 0,
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -1445,6 +1447,43 @@ const SeniorHigh = () => {
                           value={formData.lastPromotionDate}
                           onChange={handleInputChange}
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Leave Balances */}
+                  <div className="flex flex-col bg-surface-alt border border-border-subtle rounded-[16px] p-5 md:p-6 shadow-sm transition-colors duration-300">
+                    <h3 className="text-text-main text-[15px] mb-5 font-bold border-b border-border-subtle pb-3">
+                      Initial Leave Balances
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          Local Leave Balance
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          name="localLeaveBalance"
+                          value={formData.localLeaveBalance}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                          placeholder="0.000"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          D.O. Leave Balance
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          name="doLeaveBalance"
+                          value={formData.doLeaveBalance}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                          placeholder="0.000"
                         />
                       </div>
                     </div>
