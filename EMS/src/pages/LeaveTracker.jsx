@@ -479,8 +479,13 @@ const LeaveTracker = () => {
                             {getInitials(app.employees)}
                           </div>
                           <div>
-                            <p className="text-text-main text-[13px] font-bold m-0 leading-tight whitespace-nowrap">
+                            <p className="text-text-main text-[13px] font-bold m-0 leading-tight whitespace-nowrap flex items-center">
                               {getEmployeeName(app.employees)}
+                              {app.is_web_submission && (
+                                <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent/10 text-accent text-[9px] font-black uppercase tracking-widest border border-accent/20" title="Submitted via Website">
+                                  <i className="fas fa-globe text-[8px]"></i> Web
+                                </span>
+                              )}
                             </p>
                             <p className="text-text-placeholder text-[10px] font-medium m-0">
                               {app.employees?.position || "—"}

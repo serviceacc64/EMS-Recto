@@ -13,6 +13,8 @@ import SeniorHigh from './pages/SeniorHigh';
 import Report from './pages/Report';
 import LeaveTracker from './pages/LeaveTracker';
 import AuditLogs from './pages/AuditLogs';
+import AdminManagement from './pages/AdminManagement';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -22,34 +24,43 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/employee" element={<Employee />} />
-                
+
                 {/* Restricted Routes */}
-                <Route 
-                  path="/junior-high" 
-                  element={<ProtectedRoute requireSuperAdmin={true}><JuniorHigh /></ProtectedRoute>} 
+                <Route
+                  path="/junior-high"
+                  element={<ProtectedRoute requireSuperAdmin={true}><JuniorHigh /></ProtectedRoute>}
                 />
-                <Route 
-                  path="/senior-high" 
-                  element={<ProtectedRoute requireSuperAdmin={true}><SeniorHigh /></ProtectedRoute>} 
+                <Route
+                  path="/senior-high"
+                  element={<ProtectedRoute requireSuperAdmin={true}><SeniorHigh /></ProtectedRoute>}
                 />
-                <Route 
-                  path="/report" 
-                  element={<ProtectedRoute requireSuperAdmin={true}><Report /></ProtectedRoute>} 
+                <Route
+                  path="/report"
+                  element={<ProtectedRoute requireSuperAdmin={true}><Report /></ProtectedRoute>}
                 />
-                <Route 
-                  path="/leave-tracker" 
-                  element={<ProtectedRoute requireSuperAdmin={true}><LeaveTracker /></ProtectedRoute>} 
+                <Route
+                  path="/leave-tracker"
+                  element={<ProtectedRoute requireSuperAdmin={true}><LeaveTracker /></ProtectedRoute>}
                 />
-                <Route 
-                  path="/audit-logs" 
+                <Route
+                  path="/audit-logs"
                   element={
                     <ProtectedRoute requireSuperAdmin={true}>
                       <AuditLogs />
                     </ProtectedRoute>
-                  } 
+                  }
+                />
+                <Route
+                  path="/admin-management"
+                  element={
+                    <ProtectedRoute requireSuperAdmin={true}>
+                      <AdminManagement />
+                    </ProtectedRoute>
+                  }
                 />
               </Route>
             </Routes>

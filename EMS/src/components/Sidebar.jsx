@@ -43,10 +43,9 @@ const Sidebar = () => {
         to={to}
         className={({ isActive }) => `
           group flex items-center justify-between px-3 py-2 no-underline rounded-xl transition-all duration-300 font-semibold text-[13px]
-          ${
-            isActive
-              ? "bg-text-main/10 text-text-main shadow-sm"
-              : "text-text-muted hover:bg-text-main/5 hover:text-text-main"
+          ${isActive
+            ? "bg-text-main/10 text-text-main shadow-sm"
+            : "text-text-muted hover:bg-text-main/5 hover:text-text-main"
           }
           ${isCollapsed ? "justify-center px-0" : ""}
         `}
@@ -57,11 +56,10 @@ const Sidebar = () => {
               className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}
             >
               <i
-                className={`fas ${icon} text-[16px] w-[20px] transition-all duration-300 ${
-                  isActive
+                className={`fas ${icon} text-[16px] w-[20px] transition-all duration-300 ${isActive
                     ? "text-text-main"
                     : "text-text-muted group-hover:text-text-main"
-                } ${isCollapsed ? "m-0" : ""}`}
+                  } ${isCollapsed ? "m-0" : ""}`}
               ></i>
               {!isCollapsed && (
                 <span className="tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300">
@@ -212,10 +210,9 @@ const Sidebar = () => {
                   onClick={toggleTheme}
                   className={`
                     w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 shadow-sm active:scale-90 group/theme border
-                    ${
-                      isDarkMode
-                        ? "bg-zinc-800 border-zinc-700 text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.1)] hover:bg-zinc-700 hover:shadow-[0_0_15px_rgba(251,191,36,0.2)]"
-                        : "bg-white border-zinc-200 text-indigo-600 hover:bg-zinc-50 shadow-black/5"
+                    ${isDarkMode
+                      ? "bg-zinc-800 border-zinc-700 text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.1)] hover:bg-zinc-700 hover:shadow-[0_0_15px_rgba(251,191,36,0.2)]"
+                      : "bg-white border-zinc-200 text-indigo-600 hover:bg-zinc-50 shadow-black/5"
                     }
                   `}
                   title={

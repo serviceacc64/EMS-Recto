@@ -7,6 +7,7 @@ const AuditLogs = () => {
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null);
   const { showToast } = useNotifications();
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchLogs();
@@ -33,6 +34,17 @@ const AuditLogs = () => {
       setLoading(false);
     }
   };
+
+  const filteredLogs = logs.filter(log => {
+    const searchStr = searchTerm.toLowerCase();
+    const adminName = (log.guest_actor_name || log.profiles?.full_name || "System Admin").toLowerCase();
+    const tableName = log.table_name.toLowerCase();
+    const action = log.action.toLowerCase();
+    
+    return adminName.includes(searchStr) || 
+           tableName.includes(searchStr) || 
+           action.includes(searchStr);
+  });
 
   const getActionColor = (action) => {
     switch (action) {
@@ -161,18 +173,31 @@ const AuditLogs = () => {
 
   return (
     <div className="flex flex-col h-full animate-[fadeIn_0.4s_ease-out]">
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-1 h-4 bg-accent rounded-full opacity-50"></div>
           <span className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.3em]">Activity Ledger</span>
         </div>
-        <button
-          onClick={fetchLogs}
-          className="w-10 h-10 rounded-xl bg-surface border border-border-subtle text-text-main hover:bg-surface-alt transition-all flex items-center justify-center shadow-sm"
-          title="Refresh Logs"
-        >
-          <i className={`fas fa-sync-alt text-xs ${loading ? 'animate-spin' : ''}`}></i>
-        </button>
+        
+        <div className="flex items-center gap-3">
+          <div className="relative group flex-1 md:w-64">
+            <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-text-placeholder group-focus-within:text-accent transition-colors text-xs"></i>
+            <input 
+              type="text"
+              placeholder="Search by admin, table, or action..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-border-subtle rounded-xl text-[12px] font-bold text-text-main focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-text-placeholder placeholder:font-medium"
+            />
+          </div>
+          <button
+            onClick={fetchLogs}
+            className="w-10 h-10 rounded-xl bg-surface border border-border-subtle text-text-main hover:bg-surface-alt transition-all flex items-center justify-center shadow-sm shrink-0"
+            title="Refresh Logs"
+          >
+            <i className={`fas fa-sync-alt text-xs ${loading ? 'animate-spin' : ''}`}></i>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 bg-surface border border-border-subtle rounded-[24px] overflow-hidden shadow-sm flex flex-col min-h-0">
@@ -194,26 +219,33 @@ const AuditLogs = () => {
                     <td colSpan="5" className="p-4 h-12 bg-surface-alt/20"></td>
                   </tr>
                 ))
-              ) : logs.length === 0 ? (
+              ) : filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="p-12 text-center text-text-placeholder font-bold">
-                    No audit logs found.
+                    {searchTerm ? "No results match your search." : "No audit logs found."}
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
+                filteredLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-surface-alt/30 transition-colors group">
                     <td className="p-4 whitespace-nowrap text-text-muted font-medium">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center text-[10px] text-accent font-black">
-                          {log.profiles?.full_name?.charAt(0) || "A"}
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-[11px] text-accent font-black shrink-0 border border-accent/20">
+                          {log.guest_actor_name ? log.guest_actor_name.charAt(0) : (log.profiles?.full_name?.charAt(0) || "A")}
                         </div>
-                        <span className="text-text-main font-bold">
-                          {log.profiles?.full_name || "System Admin"}
-                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-text-main font-bold truncate">
+                            {log.guest_actor_name || log.profiles?.full_name || "System Admin"}
+                          </span>
+                          {log.guest_actor_name && (
+                            <span className="text-[9px] text-accent font-black uppercase tracking-tighter flex items-center gap-1.5 opacity-80">
+                              <i className="fas fa-globe text-[8px]"></i> Web Submission
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="p-4">

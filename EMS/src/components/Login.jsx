@@ -4,6 +4,7 @@ import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import PublicResultModal from "./PublicResultModal";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,6 +33,9 @@ const Login = () => {
   const [isInquiring, setIsInquiring] = useState(false);
   const [inquiryResult, setInquiryResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  
+  // Forgot Password State
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const handleAdminSubmit = async (e) => {
     e.preventDefault();
@@ -204,7 +208,16 @@ const Login = () => {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-text-muted font-black mb-1.5 text-[10px] uppercase tracking-widest">Password</label>
+                  <div className="flex justify-between items-center mb-1.5 px-1">
+                    <label className="text-text-muted font-black text-[10px] uppercase tracking-widest">Password</label>
+                    <button 
+                      type="button"
+                      onClick={() => setShowForgotModal(true)}
+                      className="text-accent text-[10px] font-black uppercase tracking-wider hover:opacity-70 transition-opacity"
+                    >
+                      Forgot?
+                    </button>
+                  </div>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-placeholder group-focus-within:text-accent transition-colors">
                       <i className="fas fa-lock text-sm"></i>
@@ -252,6 +265,12 @@ const Login = () => {
         isOpen={showResultModal}
         onClose={() => setShowResultModal(false)}
         data={inquiryResult}
+      />
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
       />
     </div>
   );
