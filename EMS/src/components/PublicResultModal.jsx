@@ -58,6 +58,29 @@ const PublicResultModal = ({ isOpen, onClose, data }) => {
               <p className="text-text-main text-[13px] font-bold truncate">{personnel.school_level}</p>
             </div>
           </div>
+          
+          {/* Leave Credits Section */}
+          <div className="mb-6">
+            <h3 className="text-text-main text-[14px] font-black mb-3 flex items-center gap-2">
+              <i className="fas fa-wallet text-accent"></i> Current Leave Credits
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-[20px] group hover:border-emerald-500/40 transition-all">
+                <p className="text-emerald-500 text-[9px] font-black uppercase tracking-widest mb-1">Local Balance</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-text-main text-2xl font-black">{personnel.local_leave_balance || 0}</span>
+                  <span className="text-text-placeholder text-[10px] font-bold">Days</span>
+                </div>
+              </div>
+              <div className="bg-blue-500/5 border border-blue-500/20 p-4 rounded-[20px] group hover:border-blue-500/40 transition-all">
+                <p className="text-blue-500 text-[9px] font-black uppercase tracking-widest mb-1">D.O. Balance</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-text-main text-2xl font-black">{personnel.do_leave_balance || 0}</span>
+                  <span className="text-text-placeholder text-[10px] font-bold">Days</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Leave Status */}
           <div>
