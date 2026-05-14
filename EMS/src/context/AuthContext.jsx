@@ -13,7 +13,12 @@ export const AuthProvider = ({ children }) => {
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
       } catch (err) {
         console.error("Session error:", err);
       } finally {
@@ -23,28 +28,32 @@ export const AuthProvider = ({ children }) => {
 
     getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔐 Auth event:", event);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      if (currentUser) {
-        setLoading(true); // Ensure we wait for profile
-      } else {
+
+      if (event === "SIGNED_IN") {
+        setLoading(true);
+        if (currentUser) await fetchProfile(currentUser.id);
+        setLoading(false);
+      } else if (event === "SIGNED_OUT") {
         setProfile(null);
         setLoading(false);
+      } else if (currentUser && !profile) {
+        // If we have a user but no profile yet (e.g. initial load or refresh)
+        setLoading(true);
+        await fetchProfile(currentUser.id);
+        setLoading(false);
       }
+      // For TOKEN_REFRESHED or other events, if we already have user/profile,
+      // we DON'T set loading to true to avoid unmounting the app.
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Fetch Profile when User changes (Separate from auth flow)
-  useEffect(() => {
-    if (user) {
-      fetchProfile(user.id);
-    } else {
-      setProfile(null);
-    }
-  }, [user]);
+
 
   const fetchProfile = async (userId) => {
     try {

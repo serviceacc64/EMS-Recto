@@ -156,6 +156,14 @@ const JuniorHigh = () => {
     fetchEmployees();
   }, []);
 
+  // PERSISTENCE: Save draft to sessionStorage when adding new personnel
+  useEffect(() => {
+    if (isModalOpen && editingIndex === null) {
+      const draftData = { ...formData };
+      sessionStorage.setItem("junior_high_draft", JSON.stringify(draftData));
+    }
+  }, [formData, isModalOpen, editingIndex]);
+
   const fetchEmployees = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -347,7 +355,17 @@ const JuniorHigh = () => {
   };
 
   const handleAdd = () => {
-    setFormData(initialFormState);
+    const savedDraft = sessionStorage.getItem("junior_high_draft");
+    if (savedDraft) {
+      try {
+        setFormData(JSON.parse(savedDraft));
+        showToast("Restored your unsaved draft", "info");
+      } catch (e) {
+        setFormData(initialFormState);
+      }
+    } else {
+      setFormData(initialFormState);
+    }
     setEditingIndex(null);
     setIsModalOpen(true);
   };
@@ -429,10 +447,6 @@ const JuniorHigh = () => {
     const required = [
       "lastName",
       "firstName",
-      "gender",
-      "birthdate",
-      "civilStatus",
-      "contactNo",
       "employeeNo",
       "basePosition",
       "salaryGrade",
@@ -541,6 +555,8 @@ const JuniorHigh = () => {
       }
       const newEmployees = [toCamelCase(data[0]), ...employees];
       setEmployees(newEmployees);
+      // Clear draft on successful save
+      sessionStorage.removeItem("junior_high_draft");
     }
 
     setIsModalOpen(false);
@@ -1055,13 +1071,12 @@ const JuniorHigh = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
-                          Gender <span className="text-red-500">*</span>
+                          Gender <span className="text-text-placeholder font-normal">(Optional)</span>
                         </label>
                         <select
                           name="gender"
                           value={formData.gender}
                           onChange={handleInputChange}
-                          required
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer"
                         >
                           <option value="">Select Gender</option>
@@ -1071,26 +1086,24 @@ const JuniorHigh = () => {
                       </div>
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
-                          Birthdate <span className="text-red-500">*</span>
+                          Birthdate <span className="text-text-placeholder font-normal">(Optional)</span>
                         </label>
                         <input
                           type="date"
                           name="birthdate"
                           value={formData.birthdate}
                           onChange={handleInputChange}
-                          required
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
                         />
                       </div>
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
-                          Civil Status <span className="text-red-500">*</span>
+                          Civil Status <span className="text-text-placeholder font-normal">(Optional)</span>
                         </label>
                         <select
                           name="civilStatus"
                           value={formData.civilStatus}
                           onChange={handleInputChange}
-                          required
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer"
                         >
                           <option value="">Select Civil Status</option>
@@ -1103,14 +1116,13 @@ const JuniorHigh = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
-                          Contact No. <span className="text-red-500">*</span>
+                          Contact No. <span className="text-text-placeholder font-normal">(Optional)</span>
                         </label>
                         <input
                           type="tel"
                           name="contactNo"
                           value={formData.contactNo}
                           onChange={handleInputChange}
-                          required
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
                           placeholder="e.g., 0917 123 4567"
                         />
