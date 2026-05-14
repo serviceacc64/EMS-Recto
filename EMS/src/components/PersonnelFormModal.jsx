@@ -5,7 +5,7 @@ import { DEPARTMENT_OPTIONS } from "../utils/personnelUtils";
 
 const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
   const [isUploading, setIsUploading] = useState(false);
-  
+
   const initialFormState = {
     lastName: "",
     firstName: "",
@@ -149,7 +149,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mb-5">
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Employee Photo
+                      Employee Photo <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <div className="flex items-center gap-4">
                       {formData.photoUrl && (
@@ -207,7 +207,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Middle Name
+                      Middle Name <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -270,21 +270,20 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Contact No. <span className="text-red-500">*</span>
+                      Contact No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="tel"
                       name="contactNo"
                       value={formData.contactNo}
                       onChange={handleInputChange}
-                      required
                       className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
                       placeholder="e.g., 0917 123 4567"
                     />
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Edu Email
+                      Edu Email <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="email"
@@ -297,7 +296,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Personal Email
+                      Personal Email <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="email"
@@ -319,7 +318,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      BP No.
+                      BP No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -332,7 +331,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      PhilHealth No.
+                      PhilHealth No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -345,7 +344,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Pag-IBIG No.
+                      Pag-IBIG No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -360,7 +359,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Bank Account No.
+                      Bank Account No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -373,7 +372,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Item No.
+                      Item No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -386,7 +385,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      TIN
+                      TIN <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
                     </label>
                     <input
                       type="text"

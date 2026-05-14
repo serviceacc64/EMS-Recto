@@ -101,7 +101,7 @@ const PersonnelViewModal = ({
                     Contact Number
                   </span>
                   <span className="text-text-main font-semibold text-[13px]">
-                    {employee.contactNo}
+                    {employee.contactNo || "-"}
                   </span>
                 </div>
                 <div className="col-span-2">

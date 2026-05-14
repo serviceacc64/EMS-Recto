@@ -3,28 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
+import { DEPARTMENT_OPTIONS } from "../utils/personnelUtils";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
-const DEPARTMENT_OPTIONS = {
-  "Junior High": [
-    "ENGLISH",
-    "FILIPINO",
-    "MATHEMATICS",
-    "SCIENCE",
-    "ARALING PANLIPUNAN",
-    "MAPEH",
-    "ESP",
-    "TLE"
-  ],
-  "Senior High": [
-    "HUMMS",
-    "ARTS & DESIGN",
-    "STEM",
-    "ABM",
-    "TECH"
-  ]
-};
+
 
 const Employee = () => {
   const { showToast } = useNotifications();

@@ -7,14 +7,18 @@ export const DEPARTMENT_OPTIONS = {
     "ARALING PANLIPUNAN",
     "MAPEH",
     "ESP",
-    "TLE"
+    "TLE",
+    "UNDEFINED",
+    "ADMINISTRATIVE"
   ],
   "Senior High": [
     "HUMMS",
     "ARTS & DESIGN",
     "STEM",
     "ABM",
-    "TECH"
+    "TECH",
+    "UNDEFINED",
+    "ADMINISTRATIVE"
   ]
 };
 
