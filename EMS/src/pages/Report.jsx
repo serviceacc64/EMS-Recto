@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { getSalary } from "../lib/salaryData";
+import { getSalary, getRawSalary } from "../lib/salaryData";
 
 const Report = () => {
   const [employees, setEmployees] = useState([]);
@@ -272,17 +272,25 @@ const Report = () => {
       // F. Salary Forecasting
       salary: (() => {
         let totalMonthly = 0;
-        const brackets = { "Below 30k": 0, "30k-40k": 0, "40k-50k": 0, "50k+": 0 };
+        const brackets = { "Below 30k": 0, "30k-40k": 0, "40k-50k": 0, "Over 50k": 0 };
         
         filteredData.forEach(emp => {
-          const salaryStr = getSalary(emp.salary_grade, emp.step) || "0";
-          const salaryNum = parseInt(salaryStr.replace(/[^\d]/g, "")) || 0;
+          const rawValue = getRawSalary(emp.salary_grade, emp.step);
+          const salaryNum = Number(rawValue) || 0;
           totalMonthly += salaryNum;
           
-          if (salaryNum < 30000) brackets["Below 30k"]++;
-          else if (salaryNum < 40000) brackets["30k-40k"]++;
-          else if (salaryNum < 50000) brackets["40k-50k"]++;
-          else brackets["50k+"]++;
+          if (salaryNum > 0 && salaryNum < 30000) {
+            brackets["Below 30k"]++;
+          } else if (salaryNum >= 30000 && salaryNum < 40000) {
+            brackets["30k-40k"]++;
+          } else if (salaryNum >= 40000 && salaryNum < 50000) {
+            brackets["40k-50k"]++;
+          } else if (salaryNum >= 50000) {
+            brackets["Over 50k"]++;
+          } else {
+            // This catches 0 or NaN
+            brackets["Below 30k"]++; 
+          }
         });
         
         return {
@@ -645,7 +653,7 @@ const Report = () => {
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                     <i className="fas fa-wallet"></i>
                   </div>
-                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Salary Density</h3>
+                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Salary Density (DEBUG)</h3>
                 </div>
                 
                 <div className="space-y-5">

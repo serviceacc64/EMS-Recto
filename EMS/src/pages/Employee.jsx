@@ -29,7 +29,7 @@ const Employee = () => {
     direction: "desc",
   });
   const [positionFilter, setPositionFilter] = useState("All Positions");
-  const itemsPerPage = 8;
+  const itemsPerPage = 16;
 
   const [itemHistory, setItemHistory] = useState([]);
   const [isLastHolderModalOpen, setIsLastHolderModalOpen] = useState(false);
@@ -686,7 +686,7 @@ const Employee = () => {
                   className="p-4 w-[22%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px] cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("lastName")}
                 >
-                   <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     Personnel Name
                     {sortConfig.key === "lastName" && (
                       <i className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} text-accent`}></i>
@@ -698,7 +698,7 @@ const Employee = () => {
                   className="p-4 w-[18%] text-left font-black text-text-placeholder uppercase tracking-[0.2em] text-[10px] cursor-pointer hover:bg-surface-hover transition-colors"
                   onClick={() => handleSort("position")}
                 >
-                   <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     Position
                     {sortConfig.key === "position" ? (
                       <i className={`fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} text-accent`}></i>
@@ -728,7 +728,7 @@ const Employee = () => {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                         <img
+                        <img
                           src={emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName)}&background=random&color=fff&bold=true`}
                           className="w-8 h-8 rounded-full border border-border-subtle object-cover"
                         />
@@ -801,14 +801,14 @@ const Employee = () => {
                   <div
                     key={emp.employeeNo}
                     className="bg-surface border border-border-subtle rounded-[28px] p-5 shadow-sm hover:shadow-2xl hover:border-accent/40 transition-all duration-500 group flex flex-col relative overflow-hidden stagger-item"
-                    style={{"--delay": `${i * 0.05}s`}}
+                    style={{ "--delay": `${i * 0.05}s` }}
                   >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/5 dark:to-white/2 pointer-events-none"></div>
-                    
+
                     {/* Header: Photo & Action */}
                     <div className="flex justify-between items-start mb-5">
                       <div className="relative">
-                         <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-border-subtle shadow-md group-hover:scale-105 transition-transform duration-500">
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-border-subtle shadow-md group-hover:scale-105 transition-transform duration-500">
                           <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
                         </div>
                         <span className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-surface rounded-full ${emp.photoUrl ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
@@ -849,7 +849,7 @@ const Employee = () => {
                       <p className="text-text-placeholder text-[11px] font-black uppercase tracking-[0.1em] mt-1 opacity-80 truncate">
                         {emp.position}
                       </p>
-                      
+
                       <div className="flex flex-wrap gap-1.5 mt-4">
                         <span className="px-2.5 py-1 rounded-full bg-accent/5 text-accent text-[9px] font-black uppercase tracking-widest border border-accent/10">
                           {emp.personnelCategory}
@@ -862,7 +862,7 @@ const Employee = () => {
 
                     {/* Quick Stats Grid */}
                     <div className="grid grid-cols-2 gap-3 bg-surface-alt/40 p-4 rounded-[22px] mb-5 border border-border-subtle/50">
-                       <div className="space-y-1">
+                      <div className="space-y-1">
                         <span className="text-[9px] font-black uppercase tracking-widest text-text-placeholder opacity-60">Salary</span>
                         <div className="text-[14px] font-black text-emerald-400 tracking-tight">{getSalary(emp.salaryGrade, emp.step)}</div>
                       </div>
@@ -892,14 +892,14 @@ const Employee = () => {
       {filteredEmployees.length > itemsPerPage && (
         <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-surface border border-border-subtle rounded-[24px] shadow-sm shrink-0 gap-4">
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-accent/5 flex items-center justify-center text-accent border border-accent/10">
-               <i className="fas fa-users text-sm"></i>
-             </div>
-             <span className="text-text-muted text-[13px] font-bold">
-               <span className="text-text-main">{filteredEmployees.length}</span> Total Personnel
-             </span>
+            <div className="w-10 h-10 rounded-xl bg-accent/5 flex items-center justify-center text-accent border border-accent/10">
+              <i className="fas fa-users text-sm"></i>
+            </div>
+            <span className="text-text-muted text-[13px] font-bold">
+              <span className="text-text-main">{filteredEmployees.length}</span> Total Personnel
+            </span>
           </div>
-          
+
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}

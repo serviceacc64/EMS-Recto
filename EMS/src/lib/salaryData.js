@@ -42,7 +42,23 @@ export const SALARY_TABLE = {
  * @returns {string} Formatted salary or "N/A"
  */
 export const getSalary = (sg, step) => {
-  if (!sg || !step) return "N/A";
+  const amount = getRawSalary(sg, step);
+  if (amount === 0) return "N/A";
+
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(amount);
+};
+
+/**
+ * Returns the raw numeric monthly salary based on Salary Grade and Step.
+ * @param {string|number} sg The Salary Grade
+ * @param {string|number} step The Step
+ * @returns {number} Salary amount or 0
+ */
+export const getRawSalary = (sg, step) => {
+  if (!sg || !step) return 0;
 
   // Clean the inputs (e.g., "SG-11" -> 11, "Step 2" -> 2)
   const cleanSg = String(sg).replace(/\D/g, "");
@@ -51,13 +67,6 @@ export const getSalary = (sg, step) => {
   const grade = parseInt(cleanSg, 10);
   const stp = parseInt(cleanStep, 10);
 
-  if (SALARY_TABLE[grade] && SALARY_TABLE[grade][stp]) {
-    const amount = SALARY_TABLE[grade][stp];
-    return new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-    }).format(amount);
-  }
-
-  return "N/A";
+  const result = (SALARY_TABLE[grade] && SALARY_TABLE[grade][stp]) || 0;
+  return result;
 };
