@@ -108,7 +108,7 @@ const Dashboard = () => {
     const nonTeaching = filtered.filter((e) => e.personnel_category === "Non-Teaching").length;
 
     // Profile Completion Breakdown
-    const completionFields = ['photo_url', 'philhealth_no', 'tin', 'pagibig_no', 'contact_no'];
+    const completionFields = ['photo_url', 'philhealth_no', 'tin', 'pagibig_no', 'contact_no', 'edu_email', 'personal_email'];
     const completeProfiles = filtered.filter(e => {
       return completionFields.every(field => e[field]);
     }).length;
@@ -116,7 +116,10 @@ const Dashboard = () => {
     // Positions Breakdown (Top 5)
     const positionCounts = {};
     filtered.forEach((e) => {
-      const pos = e.position?.split(" ")[0] || "Unassigned";
+      // Remove Roman numeral ranks (I, II, III, etc.) at the end for cleaner grouping
+      const pos = (e.position || "Unassigned")
+        .replace(/\s+(I|II|III|IV|V|VI|VII|VIII|IX|X)$/i, "")
+        .trim();
       positionCounts[pos] = (positionCounts[pos] || 0) + 1;
     });
     const positions = Object.entries(positionCounts)
@@ -127,11 +130,14 @@ const Dashboard = () => {
     // Salary Grade Distribution
     const sgCounts = {};
     filtered.forEach((e) => {
-      const sg = e.salary_grade ? `SG ${e.salary_grade}` : "N/A";
+      const cleanSg = String(e.salary_grade || "").replace(/[^0-9]/g, "").trim();
+      const sg = cleanSg ? `SG ${cleanSg}` : "N/A";
       sgCounts[sg] = (sgCounts[sg] || 0) + 1;
     });
     const salaryGrades = Object.entries(sgCounts)
       .sort((a, b) => {
+        if (a[0] === "N/A") return 1;
+        if (b[0] === "N/A") return -1;
         const numA = parseInt(a[0].replace("SG ", "")) || 0;
         const numB = parseInt(b[0].replace("SG ", "")) || 0;
         return numA - numB;
@@ -400,11 +406,19 @@ const Dashboard = () => {
               className="relative w-52 h-52 rounded-full flex items-center justify-center transition-all hover:scale-105 duration-700 shadow-[0_0_50px_rgba(var(--color-accent),0.05)] group/chart"
               style={{
                 background: `conic-gradient(
-                      #ccff00 0% ${(stats.salaryGrades[0]?.count / stats.total) * 100}%,
-                      #00f0ff ${(stats.salaryGrades[0]?.count / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0)) / stats.total) * 100}%,
-                      #ff00ff ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0)) / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0)) / stats.total) * 100}%,
-                      #4f46e5 ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0)) / stats.total) * 100}% ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0) + (stats.salaryGrades[3]?.count || 0)) / stats.total) * 100}%,
-                      var(--border-subtle) ${((stats.salaryGrades[0]?.count + (stats.salaryGrades[1]?.count || 0) + (stats.salaryGrades[2]?.count || 0) + (stats.salaryGrades[3]?.count || 0)) / stats.total) * 100}% 100%
+                      ${(() => {
+                        let current = 0;
+                        const colors = [
+                          "#3b82f6", "#10b981", "#6366f1", "#f59e0b", "#14b8a6", 
+                          "#0ea5e9", "#8b5cf6", "#f43f5e", "#475569", "#1e40af"
+                        ];
+                        return stats.salaryGrades.map((sg, i) => {
+                          const start = current;
+                          const end = current + (sg.count / stats.total) * 100;
+                          current = end;
+                          return `${colors[i % colors.length]} ${start}% ${end}%`;
+                        }).join(", ") || "var(--border-subtle) 0% 100%";
+                      })()}
                     )`,
               }}
             >
@@ -421,17 +435,20 @@ const Dashboard = () => {
             </div>
 
             {/* Legend - Standardized */}
-            <div className="mt-10 w-full grid grid-cols-2 gap-x-6 gap-y-3">
-              {stats.salaryGrades.slice(0, 4).map((sg, i) => {
-                const colors = ["#ccff00", "#00f0ff", "#ff00ff", "#4f46e5"];
+            <div className="mt-10 w-full grid grid-cols-2 gap-x-6 gap-y-3 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
+              {stats.salaryGrades.map((sg, i) => {
+                const colors = [
+                  "#3b82f6", "#10b981", "#6366f1", "#f59e0b", "#14b8a6", 
+                  "#0ea5e9", "#8b5cf6", "#f43f5e", "#475569", "#1e40af"
+                ];
                 return (
                   <div key={i} className="flex items-center justify-between group/item cursor-default">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
                         className="w-2.5 h-2.5 rounded-sm shrink-0 group-hover/item:scale-125 transition-transform"
-                        style={{ backgroundColor: colors[i] }}
+                        style={{ backgroundColor: colors[i % colors.length] }}
                       ></div>
-                      <span className="text-text-main text-[12px] font-bold truncate opacity-80 group-hover/item:opacity-100 transition-opacity">
+                      <span className="text-text-main text-[11px] font-bold truncate opacity-80 group-hover/item:opacity-100 transition-opacity">
                         {sg.name}
                       </span>
                     </div>
@@ -646,7 +663,7 @@ const Dashboard = () => {
               </thead>
               <tbody className="divide-y divide-border-subtle">
                 {recentActivity.map((emp, i) => {
-                  const completionFields = ['photo_url', 'philhealth_no', 'tin', 'pagibig_no', 'contact_no'];
+                  const completionFields = ['photo_url', 'philhealth_no', 'tin', 'pagibig_no', 'contact_no', 'edu_email', 'personal_email'];
                   const filledFields = completionFields.filter(field => emp[field]).length;
                   const percentage = Math.round((filledFields / completionFields.length) * 100);
                   return (

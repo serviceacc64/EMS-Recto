@@ -112,7 +112,7 @@ const Report = () => {
       // Salary Grade Filter
       if (
         filters.salaryGrade !== "All" &&
-        `SG ${String(emp.salary_grade || "").replace(/SG\s+/i, "")}` !==
+        `SG ${String(emp.salary_grade || "").replace(/[^0-9]/g, "").trim()}` !==
           filters.salaryGrade
       )
         return false;
@@ -229,7 +229,7 @@ const Report = () => {
       civilStatusCounts[status] = (civilStatusCounts[status] || 0) + 1;
 
       // Salary Grade
-      const rawSg = String(emp.salary_grade || "").replace(/SG\s+/i, "");
+      const rawSg = String(emp.salary_grade || "").replace(/[^0-9]/g, "").trim();
       const sg = rawSg ? `SG ${rawSg}` : "N/A";
       sgCounts[sg] = (sgCounts[sg] || 0) + 1;
 
@@ -653,7 +653,7 @@ const Report = () => {
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                     <i className="fas fa-wallet"></i>
                   </div>
-                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Salary Density (DEBUG)</h3>
+                  <h3 className="text-text-main font-black text-sm uppercase tracking-widest m-0">Salary Density</h3>
                 </div>
                 
                 <div className="space-y-5">
