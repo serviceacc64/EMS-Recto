@@ -222,13 +222,12 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Gender <span className="text-red-500">*</span>
+                      Gender
                     </label>
                     <select
                       name="gender"
                       value={formData.gender}
                       onChange={handleInputChange}
-                      required
                       className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer"
                     >
                       <option value="">Select Gender</option>
@@ -238,26 +237,24 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Birthdate <span className="text-red-500">*</span>
+                      Birthdate
                     </label>
                     <input
                       type="date"
                       name="birthdate"
                       value={formData.birthdate}
                       onChange={handleInputChange}
-                      required
                       className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
                     />
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
-                      Civil Status <span className="text-red-500">*</span>
+                      Civil Status
                     </label>
                     <select
                       name="civilStatus"
                       value={formData.civilStatus}
                       onChange={handleInputChange}
-                      required
                       className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all cursor-pointer"
                     >
                       <option value="">Select Civil Status</option>
