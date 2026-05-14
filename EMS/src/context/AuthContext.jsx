@@ -28,30 +28,42 @@ export const AuthProvider = ({ children }) => {
 
     getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("🔐 Auth event:", event);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (event === "SIGNED_IN") {
-        setLoading(true);
-        if (currentUser) await fetchProfile(currentUser.id);
-        setLoading(false);
-      } else if (event === "SIGNED_OUT") {
+      setUser(session?.user ?? null);
+      
+      if (event === "SIGNED_OUT") {
         setProfile(null);
         setLoading(false);
-      } else if (currentUser && !profile) {
-        // If we have a user but no profile yet (e.g. initial load or refresh)
-        setLoading(true);
-        await fetchProfile(currentUser.id);
-        setLoading(false);
       }
-      // For TOKEN_REFRESHED or other events, if we already have user/profile,
-      // we DON'T set loading to true to avoid unmounting the app.
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // 2. Handle Profile Fetching & Loading State
+  useEffect(() => {
+    // Safety timeout: Never let the app stay stuck in loading for more than 5 seconds
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("⚠️ Auth loading safety timeout reached");
+        setLoading(false);
+      }
+    }, 5000);
+
+    if (user) {
+      if (!profile) {
+        fetchProfile(user.id);
+      } else {
+        setLoading(false);
+      }
+    } else {
+      // If no user, we're definitely not loading a profile
+      setLoading(false);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [user, profile]);
 
 
 
