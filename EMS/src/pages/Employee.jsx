@@ -731,7 +731,7 @@ const Employee = () => {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName)}&background=random&color=fff&bold=true`}
+                          src={emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName + " " + emp.firstName)}&background=random&color=fff&bold=true`}
                           className="w-8 h-8 rounded-full border border-border-subtle object-cover"
                         />
                         <span className="text-text-main font-black">
@@ -796,7 +796,7 @@ const Employee = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginatedEmployees.map((emp, i) => {
                 const fullName = [emp.lastName, emp.firstName].join(", ");
-                const avatarUrl = emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName)}&background=random&color=fff&bold=true`;
+                const avatarUrl = emp.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.lastName + " " + emp.firstName)}&background=random&color=fff&bold=true`;
                 const isOpen = openDropdownIndex === emp.employeeNo;
 
                 return (
