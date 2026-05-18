@@ -192,6 +192,8 @@ const Report = () => {
       "original_appointment_date",
       "birthdate",
       "civil_status",
+      "prc_number",
+      "prc_expiration",
     ];
     const integrityScores = {};
     integrityFields.forEach((f) => {
@@ -378,6 +380,8 @@ const Report = () => {
       "BANK ACCOUNT NO",
       "ITEM NUMBER",
       "TIN",
+      "PRC NUMBER",
+      "PRC EXPIRATION",
       "GENDER",
       "BIRTHDATE",
       "DATE OF ORIGINAL APPOINTMENT",
@@ -447,6 +451,8 @@ const Report = () => {
       <Cell><Data ss:Type="String">${emp.bank_account_no || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.item_no || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.tin || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${emp.prc_number || ""}</Data></Cell>
+      <Cell><Data ss:Type="String">${formatDate(emp.prc_expiration)}</Data></Cell>
       <Cell><Data ss:Type="String">${emp.gender || ""}</Data></Cell>
       <Cell><Data ss:Type="String">${formatDate(emp.birthdate)}</Data></Cell>
       <Cell><Data ss:Type="String">${formatDate(emp.original_appointment_date)}</Data></Cell>

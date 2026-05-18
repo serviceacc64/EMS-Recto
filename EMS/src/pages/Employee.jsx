@@ -102,6 +102,8 @@ const Employee = () => {
     schoolLevel: "",
     localLeaveBalance: 0,
     doLeaveBalance: 0,
+    prcNumber: "",
+    prcExpiration: "",
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -1208,6 +1210,33 @@ const Employee = () => {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          PRC License No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="prcNumber"
+                          value={formData.prcNumber || ""}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
+                          placeholder="Enter PRC license number"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          PRC Expiration Date <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
+                        </label>
+                        <input
+                          type="date"
+                          name="prcExpiration"
+                          value={formData.prcExpiration || ""}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Employment Details */}
@@ -1799,6 +1828,22 @@ const Employee = () => {
                       </span>
                       <span className="text-text-main font-semibold text-[13px]">
                         {viewingEmployee.bankAccountNo || "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        PRC License No.
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.prcNumber || "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        PRC Expiration
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.prcExpiration ? new Date(viewingEmployee.prcExpiration).toLocaleDateString() : "-"}
                       </span>
                     </div>
                   </div>

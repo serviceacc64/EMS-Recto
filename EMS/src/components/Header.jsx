@@ -67,6 +67,27 @@ const Header = () => {
           data: birthdays
         });
       }
+
+      // Expiring PRC Licenses
+      const nextMonth = new Date();
+      nextMonth.setDate(today.getDate() + 30);
+      const expiringPrc = data.filter(e => {
+        if (!e.prc_expiration) return false;
+        const expDate = new Date(e.prc_expiration);
+        return expDate >= today && expDate <= nextMonth;
+      });
+
+      if (expiringPrc.length > 0) {
+        newNotifications.push({
+          id: 'expiring_prc',
+          title: 'Expiring PRC Licenses',
+          message: `${expiringPrc.length} licenses are expiring within 30 days.`,
+          icon: 'fa-id-card',
+          color: 'text-red-500',
+          data: expiringPrc
+        });
+      }
+
       setNotifications(newNotifications);
     }
   };
@@ -292,7 +313,13 @@ const Header = () => {
                           return null;
                         })()}
                       </div>
-                      <p className="text-text-muted text-[11px] font-medium m-0">{selectedNotification.id === 'birthdays' ? `Birthday: ${new Date(emp.birthdate).toLocaleDateString()}` : emp.position}</p>
+                      <p className="text-text-muted text-[11px] font-medium m-0">
+                        {selectedNotification.id === 'birthdays' 
+                          ? `Birthday: ${new Date(emp.birthdate).toLocaleDateString()}` 
+                          : selectedNotification.id === 'expiring_prc'
+                            ? `PRC Expiration: ${new Date(emp.prc_expiration).toLocaleDateString()}`
+                            : emp.position}
+                      </p>
                     </div>
                   </div>
                   <Link to={`/employee?id=${emp.employee_no}&action=view`} className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-accent border border-border-subtle hover:bg-accent hover:text-accent-text transition-all shadow-sm"><i className="fas fa-arrow-right text-xs"></i></Link>
