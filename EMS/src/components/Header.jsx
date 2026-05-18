@@ -80,6 +80,7 @@ const Header = () => {
       if (expiringPrc.length > 0) {
         newNotifications.push({
           id: 'expiring_prc',
+          type: 'alert',
           title: 'Expiring PRC Licenses',
           message: `${expiringPrc.length} licenses are expiring within 30 days.`,
           icon: 'fa-id-card',
