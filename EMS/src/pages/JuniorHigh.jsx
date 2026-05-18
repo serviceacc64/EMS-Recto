@@ -666,6 +666,26 @@ const JuniorHigh = () => {
                 <i className="fas fa-chevron-down"></i>
               </div>
             </div>
+
+            <div className="relative">
+              <select
+                value={`${sortConfig.key}-${sortConfig.direction}`}
+                onChange={(e) => {
+                  const [key, direction] = e.target.value.split("-");
+                  setSortConfig({ key, direction });
+                }}
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
+              >
+                <option value="created_at-desc">Default Sort</option>
+                <option value="position-asc">Rank: High-Low</option>
+                <option value="position-desc">Rank: Low-High</option>
+                <option value="lastName-asc">Name: A-Z</option>
+                <option value="employeeNo-asc">Employee ID</option>
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-placeholder pointer-events-none text-[10px]">
+                <i className="fas fa-chevron-down"></i>
+              </div>
+            </div>
           </div>
         </div>
 
