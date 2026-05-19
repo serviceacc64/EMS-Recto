@@ -34,7 +34,8 @@ export const toSnakeCase = (obj) => {
       /[A-Z]/g,
       (letter) => "_" + letter.toLowerCase(),
     );
-    newObj[snakeKey] = obj[key];
+    // Convert empty strings to null to prevent invalid input syntax for type date: ""
+    newObj[snakeKey] = obj[key] === "" ? null : obj[key];
   }
   return newObj;
 };
