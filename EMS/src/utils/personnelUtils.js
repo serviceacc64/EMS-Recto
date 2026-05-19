@@ -25,6 +25,15 @@ export const DEPARTMENT_OPTIONS = {
 export const toSnakeCase = (obj) => {
   if (!obj) return obj;
   const newObj = {};
+  const dateAndNumericFields = [
+    "birthdate",
+    "original_appointment_date",
+    "last_promotion_date",
+    "prc_expiration",
+    "local_leave_balance",
+    "do_leave_balance"
+  ];
+
   for (const key in obj) {
     if (key === "id") {
       newObj[key] = obj[key];
@@ -34,7 +43,13 @@ export const toSnakeCase = (obj) => {
       /[A-Z]/g,
       (letter) => "_" + letter.toLowerCase(),
     );
-    newObj[snakeKey] = obj[key];
+    // Convert empty strings to null only for date/numeric columns to prevent invalid input syntax
+    // while keeping empty strings for text fields to avoid violating NOT NULL constraints.
+    if (dateAndNumericFields.includes(snakeKey)) {
+      newObj[snakeKey] = obj[key] === "" ? null : obj[key];
+    } else {
+      newObj[snakeKey] = obj[key];
+    }
   }
   return newObj;
 };
