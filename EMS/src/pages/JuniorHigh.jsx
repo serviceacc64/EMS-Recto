@@ -30,6 +30,7 @@ const JuniorHigh = () => {
   });
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [positionFilter, setPositionFilter] = useState("All Positions");
   const itemsPerPage = 16;
 
   const [itemHistory, setItemHistory] = useState([]);
@@ -191,6 +192,10 @@ const JuniorHigh = () => {
       return false;
     }
 
+    if (positionFilter !== "All Positions" && emp.position !== positionFilter) {
+      return false;
+    }
+
     if (!searchTerm) return true;
     const s = searchTerm.toLowerCase();
     const searchString = [
@@ -223,6 +228,18 @@ const JuniorHigh = () => {
     const allDepts = [...new Set([...officialDepts, ...existingDepts])].sort();
 
     return ["All Departments", ...allDepts];
+  }, [employees]);
+
+  const uniquePositions = useMemo(() => {
+    return [
+      "All Positions",
+      ...new Set(
+        employees
+          .map((emp) => emp.position)
+          .filter(Boolean)
+          .sort()
+      ),
+    ];
   }, [employees]);
 
   const romanToInt = (roman) => {
@@ -661,6 +678,24 @@ const JuniorHigh = () => {
                 <option value="All Categories">All Categories</option>
                 <option value="Teaching">Teaching</option>
                 <option value="Non-Teaching">Non-Teaching</option>
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-placeholder pointer-events-none text-[10px]">
+                <i className="fas fa-chevron-down"></i>
+              </div>
+            </div>
+
+            <div className="relative">
+              <select
+                value={positionFilter}
+                onChange={(e) => {
+                  setPositionFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
+              >
+                {uniquePositions.map((pos) => (
+                  <option key={pos} value={pos}>{pos}</option>
+                ))}
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-placeholder pointer-events-none text-[10px]">
                 <i className="fas fa-chevron-down"></i>
