@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
-import { DEPARTMENT_OPTIONS } from "../utils/personnelUtils";
+import { DEPARTMENT_OPTIONS, toSnakeCase, toCamelCase } from "../utils/personnelUtils";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
@@ -104,37 +104,6 @@ const SeniorHigh = () => {
     doLeaveBalance: 0,
   };
   const [formData, setFormData] = useState(initialFormState);
-
-  const toSnakeCase = (obj) => {
-    if (!obj) return obj;
-    const newObj = {};
-    for (const key in obj) {
-      if (key === "id") {
-        newObj[key] = obj[key];
-        continue;
-      }
-      const snakeKey = key.replace(
-        /[A-Z]/g,
-        (letter) => "_" + letter.toLowerCase(),
-      );
-      newObj[snakeKey] = obj[key];
-    }
-    return newObj;
-  };
-
-  const toCamelCase = (obj) => {
-    if (!obj) return obj;
-    const newObj = {};
-    for (const key in obj) {
-      if (key === "id") {
-        newObj[key] = obj[key];
-        continue;
-      }
-      const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      newObj[camelKey] = obj[key];
-    }
-    return newObj;
-  };
 
   useEffect(() => {
     fetchEmployees();
