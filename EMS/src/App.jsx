@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -15,8 +15,14 @@ import LeaveTracker from './pages/LeaveTracker';
 import AuditLogs from './pages/AuditLogs';
 import AdminManagement from './pages/AdminManagement';
 import ResetPassword from './pages/ResetPassword';
+import SalaryRates from './pages/SalaryRates';
+import { initSalaryTable } from './lib/salaryData';
 
 function App() {
+  useEffect(() => {
+    initSalaryTable();
+  }, []);
+
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -59,6 +65,14 @@ function App() {
                   element={
                     <ProtectedRoute requireSuperAdmin={true}>
                       <AdminManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/salary-rates"
+                  element={
+                    <ProtectedRoute requireSuperAdmin={true}>
+                      <SalaryRates />
                     </ProtectedRoute>
                   }
                 />

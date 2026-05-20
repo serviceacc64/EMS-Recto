@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient.js";
+
 export const SALARY_TABLE = {
   1: { 1: 14634, 2: 14730, 3: 14849, 4: 14968, 5: 15089, 6: 15211, 7: 15333, 8: 15456 },
   2: { 1: 15522, 2: 15636, 3: 15752, 4: 15869, 5: 15986, 6: 16103, 7: 16223, 8: 16342 },
@@ -34,6 +37,74 @@ export const SALARY_TABLE = {
   33: { 1: 449157, 2: 462329 }
 };
 
+// Memory cache of active salary grade rates (initialized with hardcoded fallback)
+let activeSalaryTable = { ...SALARY_TABLE };
+
+const LOCAL_STORAGE_KEY = "ems_salary_rates_cache";
+
+// Synchronous loading from localStorage on script mount
+try {
+  const cachedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (cachedData) {
+    const parsed = JSON.parse(cachedData);
+    if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+      activeSalaryTable = parsed;
+    }
+  }
+} catch (e) {
+  console.warn("Failed to load salary rates from localStorage cache:", e);
+}
+
+/**
+ * Initializes and refreshes the salary table cache from Supabase.
+ * Updates both the in-memory cache and localStorage.
+ */
+export const initSalaryTable = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("salary_rates")
+      .select("salary_grade, step, amount")
+      .order("salary_grade", { ascending: true })
+      .order("step", { ascending: true });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      const newTable = {};
+      data.forEach((row) => {
+        const grade = row.salary_grade;
+        const step = row.step;
+        const amount = Number(row.amount);
+
+        if (!newTable[grade]) {
+          newTable[grade] = {};
+        }
+        newTable[grade][step] = amount;
+      });
+
+      activeSalaryTable = newTable;
+
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newTable));
+      } catch (lsError) {
+        console.warn("Failed to save salary rates to localStorage cache:", lsError);
+      }
+
+      console.log("⚡ Salary table cache updated from Supabase successfully.");
+      notifySalaryChanges(newTable);
+      return newTable;
+    }
+  } catch (err) {
+    console.error("❌ Failed to initialize salary table from database. Using fallback.", err);
+  }
+  return activeSalaryTable;
+};
+
+/**
+ * Returns the currently active salary table cache.
+ */
+export const getActiveSalaryTable = () => activeSalaryTable;
+
 /**
  * Returns the exact monthly salary based on Salary Grade and Step.
  * Handles string prefixes like "SG-11" and "Step 2".
@@ -67,6 +138,52 @@ export const getRawSalary = (sg, step) => {
   const grade = parseInt(cleanSg, 10);
   const stp = parseInt(cleanStep, 10);
 
-  const result = (SALARY_TABLE[grade] && SALARY_TABLE[grade][stp]) || 0;
+  const result = (activeSalaryTable[grade] && activeSalaryTable[grade][stp]) || 0;
   return result;
+};
+
+// Subscription listeners list
+const listeners = new Set();
+
+/**
+ * Subscribes to salary rates updates.
+ * @param {function} callback
+ * @returns {function} Unsubscribe function
+ */
+export const subscribeToSalaryChanges = (callback) => {
+  listeners.add(callback);
+  return () => {
+    listeners.delete(callback);
+  };
+};
+
+/**
+ * Notifies all active subscribers that the salary table cache has changed.
+ * @param {object} newTable
+ */
+export const notifySalaryChanges = (newTable) => {
+  listeners.forEach((callback) => {
+    try {
+      callback(newTable);
+    } catch (e) {
+      console.error("Error in salary changes listener callback:", e);
+    }
+  });
+};
+
+/**
+ * Custom React hook to subscribe to and get the active salary table cache.
+ * Triggers component re-renders when rates change.
+ */
+export const useSalaryTable = () => {
+  const [table, setTable] = useState(activeSalaryTable);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSalaryChanges((newTable) => {
+      setTable({ ...newTable });
+    });
+    return unsubscribe;
+  }, []);
+
+  return table;
 };

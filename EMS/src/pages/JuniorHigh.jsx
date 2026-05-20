@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
-import { getSalary } from "../lib/salaryData";
+import { getSalary, useSalaryTable } from "../lib/salaryData";
 import { DEPARTMENT_OPTIONS, toSnakeCase, toCamelCase } from "../utils/personnelUtils";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
@@ -11,6 +11,7 @@ const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
 const JuniorHigh = () => {
   const { showToast } = useNotifications();
+  useSalaryTable();
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,6 +83,8 @@ const JuniorHigh = () => {
     birthdate: "",
     civilStatus: "",
     contactNo: "",
+    eduEmail: "",
+    personalEmail: "",
     bpNo: "",
     philhealthNo: "",
     pagibigNo: "",
@@ -102,6 +105,8 @@ const JuniorHigh = () => {
     schoolLevel: "Junior High",
     localLeaveBalance: 0,
     doLeaveBalance: 0,
+    prcNumber: "",
+    prcExpiration: "",
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -593,22 +598,22 @@ const JuniorHigh = () => {
               placeholder="Search Junior High personnel..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-surface border border-border-subtle rounded-[16px] pl-11 pr-4 py-3 text-[14px] text-text-main font-bold placeholder:text-text-placeholder/60 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm transition-all"
+              className="w-full bg-surface border border-border-subtle rounded-[16px] pl-11 pr-4 h-11 text-[14px] text-text-main font-bold placeholder:text-text-placeholder/60 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm transition-all"
             />
           </div>
 
           {/* View Toggles */}
-          <div className="flex bg-surface-alt/50 border border-border-subtle p-1 rounded-[14px] shadow-sm self-start">
+          <div className="flex bg-surface-alt/50 border border-border-subtle p-1 h-11 rounded-[14px] shadow-sm items-center">
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-3.5 py-2 rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "grid" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
+              className={`px-3.5 h-full rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "grid" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
             >
               <i className="fas fa-th-large"></i>
               <span className="hidden sm:inline">Grid</span>
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`px-3.5 py-2 rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "table" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
+              className={`px-3.5 h-full rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "table" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
             >
               <i className="fas fa-list"></i>
               <span className="hidden sm:inline">Table</span>
@@ -624,7 +629,7 @@ const JuniorHigh = () => {
                   setDepartmentFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
               >
                 {departmentOptions.map((dept) => (
                   <option key={dept} value={dept}>{dept}</option>
@@ -642,7 +647,7 @@ const JuniorHigh = () => {
                   setCategoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
               >
                 <option value="All Categories">All Categories</option>
                 <option value="Teaching">Teaching</option>
@@ -660,7 +665,7 @@ const JuniorHigh = () => {
                   setPositionFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
               >
                 {uniquePositions.map((pos) => (
                   <option key={pos} value={pos}>{pos}</option>
@@ -678,7 +683,7 @@ const JuniorHigh = () => {
                   const [key, direction] = e.target.value.split("-");
                   setSortConfig({ key, direction });
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
               >
                 <option value="created_at-desc">Default Sort</option>
                 <option value="position-asc">Rank: High-Low</option>
@@ -696,7 +701,7 @@ const JuniorHigh = () => {
         {/* Add Button */}
         <button
           onClick={handleAdd}
-          className="bg-accent text-accent-text px-6 py-3 rounded-[16px] font-black text-[12px] uppercase tracking-[0.1em] shadow-lg shadow-accent/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-accent/20"
+          className="bg-accent text-accent-text px-6 h-11 rounded-[16px] font-black text-[12px] uppercase tracking-[0.1em] shadow-lg shadow-accent/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-accent/20"
         >
           <i className="fas fa-user-plus text-[14px]"></i>
           <span>Add Personnel</span>
@@ -1134,6 +1139,32 @@ const JuniorHigh = () => {
                           placeholder="e.g., 0917 123 4567"
                         />
                       </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          Edu Email
+                        </label>
+                        <input
+                          type="email"
+                          name="eduEmail"
+                          value={formData.eduEmail || ""}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
+                          placeholder="e.g., juan.santos@deped.gov.ph"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          Personal Email
+                        </label>
+                        <input
+                          type="email"
+                          name="personalEmail"
+                          value={formData.personalEmail || ""}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
+                          placeholder="e.g., juan.santos@gmail.com"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1221,6 +1252,33 @@ const JuniorHigh = () => {
                           onChange={handleInputChange}
                           className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
                           placeholder="Enter TIN"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          PRC License No. <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="prcNumber"
+                          value={formData.prcNumber || ""}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
+                          placeholder="Enter PRC license number"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[13px] font-semibold text-text-muted mb-2">
+                          PRC Expiration Date <span className="text-[11px] text-text-placeholder font-normal ml-1">(Optional)</span>
+                        </label>
+                        <input
+                          type="date"
+                          name="prcExpiration"
+                          value={formData.prcExpiration || ""}
+                          onChange={handleInputChange}
+                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
                         />
                       </div>
                     </div>
@@ -1616,6 +1674,22 @@ const JuniorHigh = () => {
                         {viewingEmployee.contactNo}
                       </span>
                     </div>
+                    <div className="col-span-2">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Edu Email
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px] break-all">
+                        {viewingEmployee.eduEmail || "-"}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        Personal Email
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px] break-all">
+                        {viewingEmployee.personalEmail || "-"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1775,6 +1849,22 @@ const JuniorHigh = () => {
                       </span>
                       <span className="text-text-main font-semibold text-[13px]">
                         {viewingEmployee.bankAccountNo || "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        PRC License No.
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.prcNumber || "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                        PRC Expiration
+                      </span>
+                      <span className="text-text-main font-semibold text-[13px]">
+                        {viewingEmployee.prcExpiration ? new Date(viewingEmployee.prcExpiration).toLocaleDateString() : "-"}
                       </span>
                     </div>
                   </div>
