@@ -186,6 +186,8 @@ const Sidebar = () => {
                 </div>
               )}
               <ul className="list-none flex md:flex-col gap-1 m-0 p-0">
+                <NavItem to="/admin-management" label="Admin Roles" icon="fa-user-shield" />
+                <NavItem to="/salary-rates" label="Salary Rates" icon="fa-coins" />
                 <NavItem to="/audit-logs" label="Audit Logs" icon="fa-shield-halved" />
               </ul>
             </nav>

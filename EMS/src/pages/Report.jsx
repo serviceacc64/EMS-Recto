@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { getSalary, getRawSalary } from "../lib/salaryData";
+import { getSalary, getRawSalary, useSalaryTable } from "../lib/salaryData";
 
 const Report = () => {
+  useSalaryTable();
   const [employees, setEmployees] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

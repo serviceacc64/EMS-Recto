@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
-import { getSalary } from "../lib/salaryData";
+import { getSalary, useSalaryTable } from "../lib/salaryData";
 import { DEPARTMENT_OPTIONS, toSnakeCase, toCamelCase } from "../utils/personnelUtils";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
@@ -11,6 +11,7 @@ const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
 const SeniorHigh = () => {
   const { showToast } = useNotifications();
+  useSalaryTable();
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -593,22 +594,22 @@ const SeniorHigh = () => {
               placeholder="Search Senior High personnel..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-surface border border-border-subtle rounded-[16px] pl-11 pr-4 py-3 text-[14px] text-text-main font-bold placeholder:text-text-placeholder/60 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm transition-all"
+              className="w-full bg-surface border border-border-subtle rounded-[16px] pl-11 pr-4 h-11 text-[14px] text-text-main font-bold placeholder:text-text-placeholder/60 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm transition-all"
             />
           </div>
 
           {/* View Toggles */}
-          <div className="flex bg-surface-alt/50 border border-border-subtle p-1 rounded-[14px] shadow-sm self-start">
+          <div className="flex bg-surface-alt/50 border border-border-subtle p-1 h-11 rounded-[14px] shadow-sm items-center">
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-3.5 py-2 rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "grid" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
+              className={`px-3.5 h-full rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "grid" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
             >
               <i className="fas fa-th-large"></i>
               <span className="hidden sm:inline">Grid</span>
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`px-3.5 py-2 rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "table" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
+              className={`px-3.5 h-full rounded-[10px] flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-wider ${viewMode === "table" ? "bg-surface shadow-sm text-accent border border-border-subtle" : "text-text-muted hover:text-text-main"}`}
             >
               <i className="fas fa-list"></i>
               <span className="hidden sm:inline">Table</span>
@@ -624,7 +625,7 @@ const SeniorHigh = () => {
                   setDepartmentFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
               >
                 {departmentOptions.map((dept) => (
                   <option key={dept} value={dept}>{dept}</option>
@@ -642,7 +643,7 @@ const SeniorHigh = () => {
                   setCategoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
               >
                 <option value="All Categories">All Categories</option>
                 <option value="Teaching">Teaching</option>
@@ -660,7 +661,7 @@ const SeniorHigh = () => {
                   setPositionFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30 min-w-[160px]"
               >
                 {uniquePositions.map((pos) => (
                   <option key={pos} value={pos}>{pos}</option>
@@ -678,7 +679,7 @@ const SeniorHigh = () => {
                   const [key, direction] = e.target.value.split("-");
                   setSortConfig({ key, direction });
                 }}
-                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 py-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
+                className="bg-surface border border-border-subtle text-text-main text-[11px] font-black uppercase tracking-wider rounded-[14px] pl-4 pr-10 h-11 outline-none focus:border-accent focus:ring-4 focus:ring-accent/5 shadow-sm appearance-none cursor-pointer transition-all hover:border-accent/30"
               >
                 <option value="created_at-desc">Default Sort</option>
                 <option value="position-asc">Rank: High-Low</option>
@@ -696,7 +697,7 @@ const SeniorHigh = () => {
         {/* Add Button */}
         <button
           onClick={handleAdd}
-          className="bg-accent text-accent-text px-6 py-3 rounded-[16px] font-black text-[12px] uppercase tracking-[0.1em] shadow-lg shadow-accent/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-accent/20"
+          className="bg-accent text-accent-text px-6 h-11 rounded-[16px] font-black text-[12px] uppercase tracking-[0.1em] shadow-lg shadow-accent/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-accent/20"
         >
           <i className="fas fa-user-plus text-[14px]"></i>
           <span>Add Personnel</span>
