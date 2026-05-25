@@ -4,6 +4,9 @@ import { useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary, useSalaryTable } from "../lib/salaryData";
 import { DEPARTMENT_OPTIONS, toSnakeCase, toCamelCase } from "../utils/personnelUtils";
+import PersonnelViewModal from "../components/PersonnelViewModal";
+import { useAuth } from "../context/AuthContext";
+import LeaveCreditModal from "../components/LeaveCreditModal";
 
 const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 
@@ -12,6 +15,8 @@ const EMPLOYEE_STORAGE_KEY = "emsEmployees";
 const JuniorHigh = () => {
   const { showToast } = useNotifications();
   useSalaryTable();
+  const { isSuperAdmin } = useAuth();
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1473,9 +1478,23 @@ const JuniorHigh = () => {
 
                   {/* Leave Balances */}
                   <div className="flex flex-col bg-surface-alt border border-border-subtle rounded-[16px] p-5 md:p-6 shadow-sm transition-colors duration-300">
-                    <h3 className="text-text-main text-[15px] mb-5 font-bold border-b border-border-subtle pb-3">
-                      Initial Leave Balances
+                    <h3 className="text-text-main text-[15px] mb-5 font-bold border-b border-border-subtle pb-3 flex items-center justify-between">
+                      <span>{editingIndex !== null ? "Leave Balances" : "Initial Leave Balances"}</span>
+                      {editingIndex !== null && isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCreditModalOpen(true)}
+                          className="px-3 py-1 bg-accent text-accent-text text-xs rounded-lg font-bold hover:bg-accent-dark transition flex items-center gap-1.5"
+                        >
+                          <i className="fas fa-plus"></i> Add Leave Credit
+                        </button>
+                      )}
                     </h3>
+                    {editingIndex !== null && (
+                      <p className="text-[11px] text-text-placeholder mb-3 font-medium">
+                        ℹ️ Leave balances for existing personnel are managed through Credit Entries to maintain audit history.
+                      </p>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="flex flex-col">
                         <label className="text-[13px] font-semibold text-text-muted mb-2">
@@ -1487,7 +1506,8 @@ const JuniorHigh = () => {
                           name="localLeaveBalance"
                           value={formData.localLeaveBalance}
                           onChange={handleInputChange}
-                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                          disabled={editingIndex !== null}
+                          className={`px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all ${editingIndex !== null ? 'bg-surface-alt cursor-not-allowed opacity-80' : 'bg-surface'}`}
                           placeholder="0.000"
                         />
                       </div>
@@ -1501,7 +1521,8 @@ const JuniorHigh = () => {
                           name="doLeaveBalance"
                           value={formData.doLeaveBalance}
                           onChange={handleInputChange}
-                          className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                          disabled={editingIndex !== null}
+                          className={`px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all ${editingIndex !== null ? 'bg-surface-alt cursor-not-allowed opacity-80' : 'bg-surface'}`}
                           placeholder="0.000"
                         />
                       </div>
@@ -1573,315 +1594,15 @@ const JuniorHigh = () => {
       )}
 
       {/* View Details Modal */}
-      {isViewModalOpen && viewingEmployee && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setSearchParams({});
-            }}
-          ></div>
-          <div className="relative z-[1000] w-full max-w-[700px] max-h-[90vh] overflow-y-auto bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300">
-            <div className="p-6 md:p-8">
-              {/* Header Profile */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-8 pb-6 border-b border-border-subtle">
-                <img
-                  src={
-                    viewingEmployee.photoUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(viewingEmployee.lastName + " " + viewingEmployee.firstName)}&background=random&color=fff&bold=true`
-                  }
-                  alt="Profile"
-                  className="w-20 h-20 rounded-full object-cover border-4 border-surface shadow-md"
-                />
-                <div className="flex-1 pr-10">
-                  <div className="flex flex-wrap items-center gap-3 mb-1">
-                    <h2 className="text-text-main text-[24px] font-extrabold tracking-tight">
-                      {[
-                        viewingEmployee.lastName,
-                        viewingEmployee.firstName,
-                        viewingEmployee.middleName,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </h2>
-                    <span className="px-2.5 py-1 rounded-full text-[12px] font-bold bg-surface-alt text-accent border border-accent/30">
-                      {viewingEmployee.employeeNo}
-                    </span>
-                  </div>
-                  <p className="text-text-muted text-[15px] font-medium">
-                    {viewingEmployee.position} • {viewingEmployee.gender}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsViewModalOpen(false);
-                    setSearchParams({});
-                  }}
-                  className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-surface-alt text-text-muted hover:text-text-main hover:bg-surface-hover rounded-full transition-colors border border-border-subtle"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-              </div>
-
-              {/* Detail Sections */}
-              <div className="flex flex-col gap-6">
-                {/* Personal Information */}
-                <div>
-                  <h3 className="text-text-main text-[14px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <i className="fas fa-user-circle text-accent opacity-80"></i>{" "}
-                    Personal Information
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-surface-alt/50 p-5 rounded-[16px] border border-border-subtle">
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Birthdate
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {new Date(viewingEmployee.birthdate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Age
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {(() => {
-                          const birth = new Date(viewingEmployee.birthdate);
-                          const now = new Date();
-                          let age = now.getFullYear() - birth.getFullYear();
-                          const m = now.getMonth() - birth.getMonth();
-                          if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
-                            age--;
-                          }
-                          return age;
-                        })()} Years Old
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Civil Status
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.civilStatus}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Contact Number
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.contactNo}
-                      </span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Edu Email
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px] break-all">
-                        {viewingEmployee.eduEmail || "-"}
-                      </span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Personal Email
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px] break-all">
-                        {viewingEmployee.personalEmail || "-"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Employment Details */}
-                <div>
-                  <h3 className="text-text-main text-[14px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <i className="fas fa-briefcase text-icon-cyan opacity-80"></i>{" "}
-                    Employment Details
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-surface-alt/50 p-5 rounded-[16px] border border-border-subtle">
-                    <div className="col-span-2 sm:col-span-1">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Employee ID
-                      </span>
-                      <span className="text-accent font-bold text-[13px]">
-                        {viewingEmployee.employeeNo}
-                      </span>
-                    </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Category
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.personnelCategory}
-                      </span>
-                    </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        School Level
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.schoolLevel}
-                      </span>
-                    </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Department
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.department}
-                      </span>
-                    </div>
-                    <div className="col-span-2 sm:col-span-2">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Position
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.position}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Salary Grade
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.salaryGrade}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Step
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.step}
-                      </span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Monthly Base Salary
-                      </span>
-                      <span className="text-green-500 font-bold text-[15px]">
-                        {getSalary(viewingEmployee.salaryGrade, viewingEmployee.step)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Appointment Date
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {new Date(viewingEmployee.originalAppointmentDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Last Promotion
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.lastPromotionDate
-                          ? new Date(viewingEmployee.lastPromotionDate).toLocaleDateString()
-                          : "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Government IDs */}
-                <div>
-                  <h3 className="text-text-main text-[14px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <i className="fas fa-id-card text-icon-pink opacity-80"></i>{" "}
-                    Government & Bank IDs
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-surface-alt/50 p-5 rounded-[16px] border border-border-subtle">
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        BP Number
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.bpNo || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        PhilHealth
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.philhealthNo || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Pag-IBIG
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.pagibigNo || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        TIN
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.tin || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Item No.
-                      </span>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-text-main font-semibold text-[13px] break-all">
-                          {viewingEmployee.itemNo || "-"}
-                        </span>
-                        {viewingEmployee.itemNo && (
-                          <button
-                            onClick={() => fetchItemHistory(viewingEmployee.itemNo)}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/10 text-accent text-[9px] font-black uppercase tracking-widest hover:bg-accent hover:text-black transition-all duration-200 border border-accent/20"
-                            title="View Assignment History"
-                          >
-                            <i className="fas fa-history"></i> History
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        Bank Account
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.bankAccountNo || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        PRC License No.
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.prcNumber || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
-                        PRC Expiration
-                      </span>
-                      <span className="text-text-main font-semibold text-[13px]">
-                        {viewingEmployee.prcExpiration ? new Date(viewingEmployee.prcExpiration).toLocaleDateString() : "-"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* System Information */}
-                <div className="pt-6 border-t border-border-subtle mt-4">
-                  <p className="text-[10px] text-text-placeholder font-medium flex items-center gap-2">
-                    <i className="fas fa-info-circle opacity-50"></i>
-                    Record created on {new Date(viewingEmployee.createdAt).toLocaleString()} • System Reference ID: {viewingEmployee.id}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PersonnelViewModal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSearchParams({});
+        }}
+        employee={viewingEmployee}
+        onViewHistory={fetchItemHistory}
+      />
 
       {/* Item History Modal */}
       {isLastHolderModalOpen && (
@@ -1966,6 +1687,35 @@ const JuniorHigh = () => {
             </div>
           </div>
         </div>
+      )}
+      {/* Leave Credit Modal */}
+      {isCreditModalOpen && formData?.id && (
+        <LeaveCreditModal
+          isOpen={isCreditModalOpen}
+          onClose={() => setIsCreditModalOpen(false)}
+          employeeId={formData.id}
+          afterAdd={async () => {
+            const { data, error } = await supabase
+              .from("employees")
+              .select("*")
+              .eq("id", formData.id)
+              .single();
+            if (data) {
+              const camelData = toCamelCase(data);
+              setFormData(prev => ({
+                ...prev,
+                localLeaveBalance: camelData.localLeaveBalance,
+                doLeaveBalance: camelData.doLeaveBalance
+              }));
+              setEmployees(prev => prev.map(e => e.id === camelData.id ? {
+                ...e,
+                localLeaveBalance: camelData.localLeaveBalance,
+                doLeaveBalance: camelData.doLeaveBalance
+              } : e));
+              showToast("Leave credit added and balance updated successfully!", "success");
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -80,7 +80,7 @@ const LeaveFormModal = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchEmployees = async () => {
     const { data } = await supabase.from("employees")
-      .select("id, first_name, last_name, middle_name, employee_no, department, position, salary_grade, step")
+      .select("id, first_name, last_name, middle_name, employee_no, department, position, salary_grade, step, local_leave_balance, do_leave_balance")
       .order("last_name", { ascending: true });
     setEmployees(data || []);
   };
@@ -189,6 +189,26 @@ const LeaveFormModal = ({ isOpen, onClose, onSuccess }) => {
                         )}
                       </div>
                     </F>
+
+                    <div className="md:col-span-2 mt-1 bg-surface border border-border-subtle p-4 rounded-xl grid grid-cols-2 gap-4">
+                      {/* Local Leave Card */}
+                      <div className="bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/20 p-3.5 rounded-lg flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Local Leave</span>
+                          <span className="text-[11px] text-text-placeholder font-bold">Available Credits</span>
+                        </div>
+                        <span className="text-[22px] font-black text-emerald-500">{Number(selectedEmp.local_leave_balance || 0)}</span>
+                      </div>
+
+                      {/* D.O. Leave Card */}
+                      <div className="bg-blue-500/5 border border-blue-500/10 dark:border-blue-500/20 p-3.5 rounded-lg flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">D.O. Leave</span>
+                          <span className="text-[11px] text-text-placeholder font-bold">Available Credits</span>
+                        </div>
+                        <span className="text-[22px] font-black text-blue-500">{Number(selectedEmp.do_leave_balance || 0)}</span>
+                      </div>
+                    </div>
                   </>
                 )}
 

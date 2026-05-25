@@ -9,6 +9,7 @@ const PersonnelViewModal = ({
 }) => {
   if (!isOpen || !employee) return null;
 
+
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
       <div
@@ -307,6 +308,22 @@ const PersonnelViewModal = ({
                   </span>
                   <span className="text-text-main font-semibold text-[13px]">
                     {employee.bankAccountNo || "-"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                    PRC License No.
+                  </span>
+                  <span className="text-text-main font-semibold text-[13px]">
+                    {employee.prcNumber || "-"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                    PRC Expiration
+                  </span>
+                  <span className="text-text-main font-semibold text-[13px]">
+                    {employee.prcExpiration ? new Date(employee.prcExpiration).toLocaleDateString() : "-"}
                   </span>
                 </div>
               </div>
