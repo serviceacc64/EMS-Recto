@@ -94,13 +94,7 @@ const LeaveTracker = () => {
   const stats = {
     total: applications.length,
     pending: applications.filter((a) => a.status === "Pending").length,
-    approvedThisMonth: applications.filter((a) => {
-      if (a.status !== "Approved") return false;
-      const filed = new Date(a.date_of_filing);
-      return (
-        filed.getMonth() === currentMonth && filed.getFullYear() === currentYear
-      );
-    }).length,
+    actionedHistory: applications.filter((a) => a.status === "Approved" || a.status === "Rejected").length,
   };
 
   // --- Filtering ---
@@ -116,10 +110,8 @@ const LeaveTracker = () => {
     const matchStatus =
       statusFilter === "All"
         ? true
-        : statusFilter === "Approved This Month"
-        ? a.status === "Approved" &&
-          new Date(a.date_of_filing).getMonth() === currentMonth &&
-          new Date(a.date_of_filing).getFullYear() === currentYear
+        : statusFilter === "Actioned"
+        ? a.status === "Approved" || a.status === "Rejected"
         : a.status === statusFilter;
     const matchType =
       typeFilter === "All Types" || a.type_of_leave === typeFilter;
@@ -406,14 +398,14 @@ const LeaveTracker = () => {
             glow: "shadow-amber-500/20"
           },
           {
-            label: "Monthly Approval",
-            value: stats.approvedThisMonth,
+            label: "Actioned History",
+            value: stats.actionedHistory,
             icon: "fa-calendar-check",
             color: "text-emerald-400",
             bg: "bg-emerald-500/10",
             border: "border-emerald-500/20",
-            sub: "Verified this Month",
-            filterValue: "Approved This Month",
+            sub: "Resolved Applications",
+            filterValue: "Actioned",
             glow: "shadow-emerald-500/20"
           },
         ].map((card, idx) => (
@@ -469,8 +461,10 @@ const LeaveTracker = () => {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-surface border border-border-subtle text-text-main text-[13px] font-bold rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
         >
-          {["All", "Pending", "Approved", "Rejected", "Approved This Month"].map((s) => (
-            <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+          {["All", "Pending", "Approved", "Rejected", "Actioned"].map((s) => (
+            <option key={s} value={s}>
+              {s === "All" ? "All Statuses" : s === "Actioned" ? "Actioned History" : s}
+            </option>
           ))}
         </select>
 
