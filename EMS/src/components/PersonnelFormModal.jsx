@@ -2,9 +2,13 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getSalary } from "../lib/salaryData";
 import { DEPARTMENT_OPTIONS } from "../utils/personnelUtils";
+import { useNotifications } from "../context/NotificationContext";
 
 const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
+  const { showToast } = useNotifications();
   const [isUploading, setIsUploading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const initialFormState = {
     lastName: "",
@@ -41,6 +45,10 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
   const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
+    if (isOpen) {
+      setIsDirty(false);
+      setShowConfirmClose(false);
+    }
     if (employee) {
       const empData = { ...employee };
       // Parse position for the UI
@@ -65,6 +73,14 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
     }
   }, [employee, isOpen]);
 
+  const handleCloseAttempt = () => {
+    if (isDirty) {
+      setShowConfirmClose(true);
+    } else {
+      onClose();
+    }
+  };
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -79,7 +95,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
       .upload(fileName, file);
 
     if (uploadError) {
-      alert("Error uploading photo: " + uploadError.message);
+      showToast("Error uploading photo: " + uploadError.message, "error");
       setIsUploading(false);
       return;
     }
@@ -89,11 +105,13 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
       .getPublicUrl(fileName);
 
     setFormData((prev) => ({ ...prev, photoUrl: data.publicUrl }));
+    setIsDirty(true);
     setIsUploading(false);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    setIsDirty(true);
     setFormData((prev) => {
       const newData = { ...prev, [name]: value };
       // If school level changes, reset department
@@ -127,7 +145,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
-        onClick={onClose}
+        onClick={handleCloseAttempt}
       ></div>
       <div className="relative z-[1000] w-full max-w-[840px] max-h-[90vh] overflow-y-auto bg-surface border border-border-subtle rounded-[24px] shadow-2xl animate-[slideIn_0.2s_ease] transition-colors duration-300">
         <div className="p-6 md:p-8">
@@ -277,6 +295,11 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                       className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
                       placeholder="e.g., 0917 123 4567"
                     />
+                    {formData.contactNo && !/^(09|\+639)\d{9}$/.test(formData.contactNo.replace(/[\s-]/g, '')) && (
+                      <span className="mt-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md">
+                        <i className="fas fa-exclamation-triangle"></i> Needs a valid 11-digit mobile format starting with 09
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
@@ -290,6 +313,11 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
                       className="px-4 py-2.5 border border-border-subtle rounded-[10px] text-[14px] text-text-main bg-surface shadow-sm focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-text-placeholder"
                       placeholder="e.g., juan.santos@deped.gov.ph"
                     />
+                    {formData.eduEmail && !formData.eduEmail.toLowerCase().endsWith("@deped.gov.ph") && (
+                      <span className="mt-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md">
+                        <i className="fas fa-exclamation-triangle"></i> Education email should end with @deped.gov.ph
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-[13px] font-semibold text-text-muted mb-2">
@@ -622,7 +650,7 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
             <div className="flex justify-end gap-3 pt-5 border-t border-border-subtle">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleCloseAttempt}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-alt text-text-muted border border-border-subtle rounded-[12px] cursor-pointer text-[14px] font-semibold transition-all duration-200 shadow-sm hover:bg-surface-hover hover:text-text-main group"
               >
                 <i className="fas fa-times text-text-placeholder"></i>{" "}
@@ -640,6 +668,46 @@ const PersonnelFormModal = ({ isOpen, onClose, onSave, employee = null }) => {
           </form>
         </div>
       </div>
+
+      {/* Confirmation Modal Overlay */}
+      {showConfirmClose && (
+        <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-md animate-[fadeIn_0.2s_ease]"
+            onClick={() => setShowConfirmClose(false)}
+          ></div>
+          <div className="relative z-[1002] w-full max-w-[420px] bg-surface border border-border-subtle rounded-[24px] shadow-2xl p-6 text-center animate-[slideIn_0.2s_ease]">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4 text-amber-500 text-xl">
+              <i className="fas fa-exclamation-triangle animate-bounce"></i>
+            </div>
+            <h3 className="text-text-main text-[20px] font-extrabold tracking-tight mb-2">
+              Unsaved Changes
+            </h3>
+            <p className="text-text-muted text-[14px] leading-relaxed mb-6">
+              You have unsaved edits in this employee form. Discarding will permanently lose all changes.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => setShowConfirmClose(false)}
+                className="px-4 py-2 bg-surface-alt border border-border-subtle hover:bg-surface-hover text-text-muted hover:text-text-main rounded-xl text-[13px] font-bold transition-all"
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmClose(false);
+                  onClose();
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all"
+              >
+                Discard Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

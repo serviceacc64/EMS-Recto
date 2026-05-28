@@ -38,6 +38,7 @@ export const NotificationProvider = ({ children }) => {
               pointer-events-auto flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-500 animate-[fadeInRight_0.3s_ease-out]
               ${toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400/50 text-white shadow-emerald-500/20' : ''}
               ${toast.type === 'error' ? 'bg-rose-500/90 border-rose-400/50 text-white shadow-rose-500/20' : ''}
+              ${toast.type === 'warning' ? 'bg-amber-500/90 border-amber-400/50 text-white shadow-amber-500/20' : ''}
               ${toast.type === 'info' ? 'bg-blue-500/90 border-blue-400/50 text-white shadow-blue-500/20' : ''}
             `}
           >
@@ -45,6 +46,7 @@ export const NotificationProvider = ({ children }) => {
               <i className={`fas ${
                 toast.type === 'success' ? 'fa-check' : 
                 toast.type === 'error' ? 'fa-exclamation-circle' : 
+                toast.type === 'warning' ? 'fa-exclamation-triangle' : 
                 'fa-info-circle'
               } text-[12px]`}></i>
             </div>

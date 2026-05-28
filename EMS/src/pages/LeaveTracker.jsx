@@ -94,13 +94,7 @@ const LeaveTracker = () => {
   const stats = {
     total: applications.length,
     pending: applications.filter((a) => a.status === "Pending").length,
-    approvedThisMonth: applications.filter((a) => {
-      if (a.status !== "Approved") return false;
-      const filed = new Date(a.date_of_filing);
-      return (
-        filed.getMonth() === currentMonth && filed.getFullYear() === currentYear
-      );
-    }).length,
+    actionedHistory: applications.filter((a) => a.status === "Approved" || a.status === "Rejected").length,
   };
 
   // --- Filtering ---
@@ -116,10 +110,8 @@ const LeaveTracker = () => {
     const matchStatus =
       statusFilter === "All"
         ? true
-        : statusFilter === "Approved This Month"
-        ? a.status === "Approved" &&
-          new Date(a.date_of_filing).getMonth() === currentMonth &&
-          new Date(a.date_of_filing).getFullYear() === currentYear
+        : statusFilter === "Actioned"
+        ? a.status === "Approved" || a.status === "Rejected"
         : a.status === statusFilter;
     const matchType =
       typeFilter === "All Types" || a.type_of_leave === typeFilter;
@@ -138,27 +130,37 @@ const LeaveTracker = () => {
 
   // --- Status Update ---
   const handleStatusUpdate = async (id, updates) => {
-    const isApproving = updates.status === "Approved";
+    // Extract explicit deduction metadata from the modal (private keys prefixed with _)
+    // These are NOT stored in the DB directly — they drive the balance update logic.
+    const explicitLocalDeduct = updates._localDeduct !== undefined ? Number(updates._localDeduct) : null;
+    const explicitDoDeduct = updates._doDeduct !== undefined ? Number(updates._doDeduct) : null;
+    const lwopDays = Number(updates._lwopDays) || 0;
 
-    // If approving, we need to handle the balance deduction logic
-    if (isApproving) {
-      const { data: app, error: fetchErr } = await supabase
-        .from("leave_applications")
-        .select("working_days, employee_id")
-        .eq("id", id)
-        .single();
+    // Strip private keys before writing to DB
+    const { _localDeduct, _doDeduct, _lwopDays, ...dbUpdates } = updates;
 
-      if (fetchErr || !app) {
-        console.error("Error fetching application for deduction:", fetchErr);
-        alert("Failed to process deduction: Application not found.");
-        return;
-      }
+    // Fetch the current record before updating to check previous status
+    const { data: currentApp, error: fetchErr } = await supabase
+      .from("leave_applications")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-      // Fetch employee current balances
+    if (fetchErr || !currentApp) {
+      console.error("Error fetching application for status change:", fetchErr);
+      alert("Failed to process status change: Application not found.");
+      return;
+    }
+
+    const wasApproved = currentApp.status === "Approved";
+    const isApproving = dbUpdates.status === "Approved";
+
+    // ── Scenario A: Transitioning TO Approved → Deduct balances ──────────
+    if (!wasApproved && isApproving) {
       const { data: emp, error: empErr } = await supabase
         .from("employees")
         .select("local_leave_balance, do_leave_balance")
-        .eq("id", app.employee_id)
+        .eq("id", currentApp.employee_id)
         .single();
 
       if (empErr || !emp) {
@@ -167,28 +169,25 @@ const LeaveTracker = () => {
         return;
       }
 
-      const requested = Number(app.working_days) || 0;
-      let localBal = Number(emp.local_leave_balance) || 0;
-      let doBal = Number(emp.do_leave_balance) || 0;
+      // Prefer the explicit deductions from the modal; fallback to vl/sl_less_application
+      const localDeduct = explicitLocalDeduct !== null
+        ? explicitLocalDeduct
+        : Number(dbUpdates.vl_less_application) || 0;
 
-      // Deduction Logic:
-      // 1. Deduct from Local Leave first
-      const localDeduct = Math.min(requested, localBal);
-      localBal -= localDeduct;
+      const doDeduct = explicitDoDeduct !== null
+        ? explicitDoDeduct
+        : Number(dbUpdates.sl_less_application) || 0;
 
-      // 2. Excess from D.O. Leave
-      const remaining = requested - localDeduct;
-      const doDeduct = Math.min(remaining, doBal);
-      doBal -= doDeduct;
+      const newLocalBal = Math.max(0, (Number(emp.local_leave_balance) || 0) - localDeduct);
+      const newDoBal = Math.max(0, (Number(emp.do_leave_balance) || 0) - doDeduct);
 
-      // Update employee balances
       const { error: updateEmpErr } = await supabase
         .from("employees")
         .update({
-          local_leave_balance: localBal,
-          do_leave_balance: doBal
+          local_leave_balance: newLocalBal,
+          do_leave_balance: newDoBal,
         })
-        .eq("id", app.employee_id);
+        .eq("id", currentApp.employee_id);
 
       if (updateEmpErr) {
         console.error("Error updating employee balances:", updateEmpErr);
@@ -196,18 +195,52 @@ const LeaveTracker = () => {
         return;
       }
 
-      // Add the deduction info to the updates object for Section 7.D (Others)
-      if (localDeduct > 0 || doDeduct > 0) {
-        const deductionMsg = `[Auto-Deducted: ${Number(localDeduct)} from Local, ${Number(doDeduct)} from D.O.]`;
-        updates.days_others = updates.days_others
-          ? `${updates.days_others} ${deductionMsg}`
-          : deductionMsg;
+      // Attach LWOP note to Section 7.D "Others" if applicable
+      if (lwopDays > 0) {
+        const lwopNote = `[LWOP: ${lwopDays} day${lwopDays !== 1 ? "s" : ""} Non-Pay Leave]`;
+        dbUpdates.days_others = dbUpdates.days_others
+          ? `${dbUpdates.days_others} ${lwopNote}`
+          : lwopNote;
       }
     }
 
+    // ── Scenario B: Transitioning FROM Approved → Refund balances ────────
+    if (wasApproved && !isApproving) {
+      const { data: emp, error: empErr } = await supabase
+        .from("employees")
+        .select("local_leave_balance, do_leave_balance")
+        .eq("id", currentApp.employee_id)
+        .single();
+
+      if (empErr || !emp) {
+        console.error("Error fetching employee balances for refund:", empErr);
+        alert("Failed to process refund: Employee balances not found.");
+        return;
+      }
+
+      // Refund exactly what was deducted when the leave was originally approved
+      const localRefund = Number(currentApp.vl_less_application) || 0;
+      const doRefund = Number(currentApp.sl_less_application) || 0;
+
+      const { error: updateEmpErr } = await supabase
+        .from("employees")
+        .update({
+          local_leave_balance: (Number(emp.local_leave_balance) || 0) + localRefund,
+          do_leave_balance: (Number(emp.do_leave_balance) || 0) + doRefund,
+        })
+        .eq("id", currentApp.employee_id);
+
+      if (updateEmpErr) {
+        console.error("Error updating employee balances during refund:", updateEmpErr);
+        alert("Failed to refund employee leave balances: " + updateEmpErr.message);
+        return;
+      }
+    }
+
+    // ── Write final status to leave_applications ──────────────────────────
     const { error } = await supabase
       .from("leave_applications")
-      .update(updates)
+      .update(dbUpdates)
       .eq("id", id);
 
     if (error) {
@@ -235,18 +268,53 @@ const LeaveTracker = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingRecord) return;
     setIsDeleting(true);
-    const { error } = await supabase
-      .from("leave_applications")
-      .delete()
-      .eq("id", deletingRecord.id);
-    if (error) {
-      alert("Failed to delete: " + error.message);
-    } else {
-      fetchApplications();
+    try {
+      // If the deleted record was Approved, we must refund the deducted leave credits
+      if (deletingRecord.status === "Approved") {
+        const { data: emp, error: empErr } = await supabase
+          .from("employees")
+          .select("local_leave_balance, do_leave_balance")
+          .eq("id", deletingRecord.employee_id)
+          .single();
+
+        if (!empErr && emp) {
+          const localRefund = Number(deletingRecord.vl_less_application) || 0;
+          const doRefund = Number(deletingRecord.sl_less_application) || 0;
+
+          const newLocalBal = (Number(emp.local_leave_balance) || 0) + localRefund;
+          const newDoBal = (Number(emp.do_leave_balance) || 0) + doRefund;
+
+          const { error: updateEmpErr } = await supabase
+            .from("employees")
+            .update({
+              local_leave_balance: newLocalBal,
+              do_leave_balance: newDoBal
+            })
+            .eq("id", deletingRecord.employee_id);
+
+          if (updateEmpErr) {
+            console.error("Error refunding balances during deletion:", updateEmpErr);
+          }
+        }
+      }
+
+      const { error } = await supabase
+        .from("leave_applications")
+        .delete()
+        .eq("id", deletingRecord.id);
+
+      if (error) {
+        alert("Failed to delete: " + error.message);
+      } else {
+        fetchApplications();
+      }
+    } catch (err) {
+      console.error("Error in delete execution:", err);
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+      setDeletingRecord(null);
     }
-    setIsDeleting(false);
-    setIsDeleteModalOpen(false);
-    setDeletingRecord(null);
   };
 
   // --- Helpers ---
@@ -330,14 +398,14 @@ const LeaveTracker = () => {
             glow: "shadow-amber-500/20"
           },
           {
-            label: "Monthly Approval",
-            value: stats.approvedThisMonth,
+            label: "Actioned History",
+            value: stats.actionedHistory,
             icon: "fa-calendar-check",
             color: "text-emerald-400",
             bg: "bg-emerald-500/10",
             border: "border-emerald-500/20",
-            sub: "Verified this Month",
-            filterValue: "Approved This Month",
+            sub: "Resolved Applications",
+            filterValue: "Actioned",
             glow: "shadow-emerald-500/20"
           },
         ].map((card, idx) => (
@@ -393,8 +461,10 @@ const LeaveTracker = () => {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-surface border border-border-subtle text-text-main text-[13px] font-bold rounded-[12px] px-4 py-2.5 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 shadow-sm cursor-pointer transition-all hover:border-accent/50"
         >
-          {["All", "Pending", "Approved", "Rejected", "Approved This Month"].map((s) => (
-            <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+          {["All", "Pending", "Approved", "Rejected", "Actioned"].map((s) => (
+            <option key={s} value={s}>
+              {s === "All" ? "All Statuses" : s === "Actioned" ? "Actioned History" : s}
+            </option>
           ))}
         </select>
 

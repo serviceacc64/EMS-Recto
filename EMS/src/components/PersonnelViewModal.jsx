@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { getSalary } from "../lib/salaryData";
+import { supabase } from "../lib/supabaseClient";
 
 const PersonnelViewModal = ({
   isOpen,
@@ -7,7 +8,34 @@ const PersonnelViewModal = ({
   employee,
   onViewHistory,
 }) => {
+  const [creditHistory, setCreditHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && employee?.id) {
+      fetchCreditHistory();
+    }
+  }, [isOpen, employee?.id]);
+
+  const fetchCreditHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from("leave_credit_entries")
+        .select("*")
+        .eq("employee_id", employee.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setCreditHistory(data || []);
+    } catch (err) {
+      console.error("Error fetching credit history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   if (!isOpen || !employee) return null;
+
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
@@ -148,6 +176,104 @@ const PersonnelViewModal = ({
                   </span>
                   <span className="text-[10px] font-bold text-blue-500/60 mt-1 uppercase tracking-tighter">Days Available</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Leave Credit History Ledger */}
+            <div>
+              <h3 className="text-text-main text-[14px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i className="fas fa-history text-accent opacity-80"></i>{" "}
+                Leave Credit History
+              </h3>
+              <div className="bg-surface-alt/50 border border-border-subtle rounded-[16px] p-4 flex flex-col gap-3">
+                {loadingHistory ? (
+                  <div className="py-6 flex flex-col items-center justify-center gap-2">
+                    <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-[12px] text-text-muted font-medium">Loading credit ledger...</span>
+                  </div>
+                ) : creditHistory.length === 0 ? (
+                  <div className="text-center py-6">
+                    <i className="fas fa-folder-open text-text-placeholder text-2xl mb-2 opacity-30"></i>
+                    <p className="text-[13px] font-semibold text-text-muted">No credit entries found</p>
+                    <p className="text-[11px] text-text-placeholder">Initial balances were assigned during account onboarding.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                    {creditHistory.map((entry) => {
+                      const isLocal = entry.leave_type === "local";
+                      const dateAdded = new Date(entry.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                      const startDateStr = new Date(entry.start_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                      const endDateStr = new Date(entry.end_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex items-start sm:items-center justify-between p-3 bg-surface border border-border-subtle rounded-xl shadow-sm hover:border-accent/20 transition-all gap-2"
+                        >
+                          <div className="flex items-start sm:items-center gap-3">
+                            {/* Type Indicator */}
+                            <div
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 sm:mt-0 ${
+                                isLocal ? "bg-emerald-500" : "bg-blue-500"
+                              }`}
+                              title={isLocal ? "Local Leave Credit" : "D.O. Leave Credit"}
+                            />
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                    isLocal
+                                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                      : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                                  }`}>
+                                    {isLocal ? "Local Leave" : "D.O. Leave"}
+                                  </span>
+                                  <span className="text-[12px] font-bold text-text-main tracking-tight">
+                                    via {entry.source_type === "service_credit"
+                                      ? "Service Credits"
+                                      : entry.source_type === "event"
+                                      ? "Event"
+                                      : "Other"}
+                                  </span>
+                                  {entry.source_desc && (
+                                    <span className="text-[11px] text-text-muted bg-surface-alt border border-border-subtle px-1.5 py-0.5 rounded font-medium">
+                                      {entry.source_desc}
+                                    </span>
+                                  )}
+                                </div>
+                              <div className="text-[11px] text-text-placeholder font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <i className="far fa-calendar-alt opacity-70"></i>
+                                <span>
+                                  {startDateStr} — {endDateStr}
+                                </span>
+                                <span className="opacity-40">•</span>
+                                <span>Added on {dateAdded}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span
+                            className={`text-[15px] font-black shrink-0 ${
+                              isLocal ? "text-emerald-500" : "text-blue-500"
+                            }`}
+                          >
+                            +{Number(entry.amount_days)} d
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -307,6 +433,22 @@ const PersonnelViewModal = ({
                   </span>
                   <span className="text-text-main font-semibold text-[13px]">
                     {employee.bankAccountNo || "-"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                    PRC License No.
+                  </span>
+                  <span className="text-text-main font-semibold text-[13px]">
+                    {employee.prcNumber || "-"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-text-placeholder block text-[11px] uppercase tracking-wider mb-1">
+                    PRC Expiration
+                  </span>
+                  <span className="text-text-main font-semibold text-[13px]">
+                    {employee.prcExpiration ? new Date(employee.prcExpiration).toLocaleDateString() : "-"}
                   </span>
                 </div>
               </div>
